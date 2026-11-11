@@ -1,5 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { AiClient, type AssessRequest, type Level } from '../ai/ai.client.js';
+import { AiClient, type AssessRequest } from '../ai/ai.client.js';
+import { LEVEL_RANK, type CrewAlertState } from '../alerts/alert-rules.js';
+import { AlertsService, type Schedule } from '../alerts/alerts.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { loadObservedDay, replaySlug } from '../replay/replay-data.js';
 import { OpenMeteoClient } from '../weather/open-meteo.client.js';
@@ -8,13 +10,13 @@ import type { HourlyWeather } from '../weather/weather.types.js';
 const HOUR_MS = 60 * 60 * 1000;
 const OUTLOOK_HOURS = 6;
 const ACCLIMATIZATION_DAYS = 14;
-const LEVEL_RANK: Record<Level, number> = { GREEN: 0, YELLOW: 1, ORANGE: 2, RED: 3 };
 
 export interface RunSummary {
   siteId: string;
   computedAt: string;
   assessments: number;
   workerRisks: number;
+  alerts: number;
   fallback: boolean;
   isReplay: boolean;
   skipped: string[];
@@ -39,6 +41,7 @@ export class RiskService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly weather: OpenMeteoClient,
     private readonly ai: AiClient,
+    private readonly alerts: AlertsService,
   ) {}
 
   /** Runs every RISK_INTERVAL_MIN minutes (default 15). Set it to 0 to disable the timer. */
@@ -148,6 +151,8 @@ export class RiskService implements OnModuleInit, OnModuleDestroy {
     const computedAt = new Date();
     let assessments = 0;
     let workerRisks = 0;
+    let alerts = 0;
+    const alertState = new Map<string, CrewAlertState | null>();
 
     for (const crew of site.crews) {
       for (const [index, hour] of hours.entries()) {
@@ -209,30 +214,58 @@ export class RiskService implements OnModuleInit, OnModuleDestroy {
         });
         assessments += 1;
 
-        // Current hour only: workers still acclimatizing get their own, stricter level.
+        // The rest applies to the current hour only (every hour, in a replay).
         if (index !== 0 && !isReplay) continue;
+
+        // Workers still acclimatizing get their own schedule when it is stricter.
+        const overrides = new Map<string, Schedule>();
         const newArrivals = crew.workers.filter((w) => w.acclimatizedFrom > cutoff);
-        if (newArrivals.length === 0) continue;
-        try {
-          const strict = await this.ai.assess({ ...request, acclimatized: false });
-          if (LEVEL_RANK[strict.level] > LEVEL_RANK[result.level]) {
-            await this.prisma.workerRisk.createMany({
-              data: newArrivals.map((w) => ({
-                workerId: w.id,
-                assessmentId: assessment.id,
-                level: strict.level,
-                reasons: ['UNACCLIMATIZED'],
-              })),
-            });
-            workerRisks += newArrivals.length;
+        if (newArrivals.length > 0) {
+          try {
+            const strict = await this.ai.assess({ ...request, acclimatized: false });
+            if (LEVEL_RANK[strict.level] > LEVEL_RANK[result.level] || strict.workMin < result.workMin) {
+              const own = { level: strict.level, workMin: strict.workMin, restMin: strict.restMin };
+              await this.prisma.workerRisk.createMany({
+                data: newArrivals.map((w) => ({
+                  workerId: w.id,
+                  assessmentId: assessment.id,
+                  ...own,
+                  reasons: ['UNACCLIMATIZED'],
+                })),
+              });
+              workerRisks += newArrivals.length;
+              for (const w of newArrivals) overrides.set(w.id, own);
+            }
+          } catch (err) {
+            skipped.push(`${crew.name} unacclimatized check: ${String(err)}`);
           }
+        }
+
+        try {
+          if (!alertState.has(crew.id)) {
+            alertState.set(crew.id, isReplay ? null : await this.alerts.lastCrewState(crew.id));
+          }
+          const outcome = await this.alerts.notifyCrew(
+            {
+              assessmentId: assessment.id,
+              crew: { id: crew.id, name: crew.name },
+              workers: crew.workers.map((w) => ({ id: w.id, language: w.language })),
+              schedule: { level: result.level, workMin: result.workMin, restMin: result.restMin },
+              overrides,
+              at: isReplay ? hour : new Date(),
+              isReplay,
+            },
+            alertState.get(crew.id) ?? null,
+          );
+          alertState.set(crew.id, outcome.state);
+          alerts += outcome.sent;
         } catch (err) {
-          skipped.push(`${crew.name} unacclimatized check: ${String(err)}`);
+          skipped.push(`${crew.name} ${hour.toISOString()} alerts: ${String(err)}`);
         }
       }
     }
 
-    return { siteId: site.id, computedAt: computedAt.toISOString(), assessments, workerRisks, fallback, isReplay, skipped };
+    return { siteId: site.id, computedAt: computedAt.toISOString(), assessments, workerRisks, alerts, fallback, isReplay, skipped };
   }
 
   listSites() {

@@ -53,6 +53,11 @@ enum RestArea {
   COOLED
 }
 
+enum AlertAudience {
+  WORKER
+  SUPERVISOR
+}
+
 enum WeatherSource {
   FORECAST
   OBSERVED
@@ -232,6 +237,7 @@ model RiskAssessment {
   site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
   crew        Crew         @relation(fields: [crewId], references: [id], onDelete: Cascade)
   workerRisks WorkerRisk[]
+  alerts      Alert[]
 
   @@index([crewId, validAt])
   @@index([siteId, computedAt])
@@ -243,6 +249,9 @@ model WorkerRisk {
   workerId     String
   assessmentId String
   level        Level
+  /// The worker's own schedule when it is stricter than the crew's.
+  workMin      Int?
+  restMin      Int?
   reasons      String[]
   createdAt    DateTime @default(now())
 
@@ -271,24 +280,35 @@ model CheckIn {
 }
 
 model Alert {
-  id        String      @id @default(cuid())
-  workerId  String?
-  crewId    String?
-  level     Level
-  /// Action code: HYDRATE, REST, COOL, REDUCE, ROTATE, ESCALATE.
-  action    String
-  channel   Channel
-  language  String
-  status    AlertStatus @default(QUEUED)
-  createdAt DateTime    @default(now())
-  sentAt    DateTime?
-  ackAt     DateTime?
+  id           String        @id @default(cuid())
+  workerId     String?
+  crewId       String?
+  assessmentId String?
+  audience     AlertAudience
+  /// LEVEL_UP, EASED, REMINDER or RED_FLAG.
+  reason       String
+  level        Level
+  /// Action code: HYDRATE, REST, REDUCE, STOP, ESCALATE.
+  action       String
+  /// The message as sent, in the recipient's language.
+  body         String
+  channel      Channel
+  language     String
+  status       AlertStatus   @default(QUEUED)
+  /// The time the alert applies to (a past time for replayed days).
+  validAt      DateTime
+  isReplay     Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  sentAt       DateTime?
+  ackAt        DateTime?
 
-  worker Worker? @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  crew   Crew?   @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  worker     Worker?         @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  crew       Crew?           @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  assessment RiskAssessment? @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
 
   @@index([workerId, createdAt])
   @@index([crewId, createdAt])
+  @@index([assessmentId])
 }
 
 /// Simulated in the prototype.
