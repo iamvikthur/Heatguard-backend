@@ -268,9 +268,18 @@ export class RiskService implements OnModuleInit, OnModuleDestroy {
     return { siteId: site.id, computedAt: computedAt.toISOString(), assessments, workerRisks, alerts, fallback, isReplay, skipped };
   }
 
-  listSites() {
+  /** Sites of an organisation. With supervisorId, only the crews that user supervises are listed. */
+  listSites(orgId: string, supervisorId?: string) {
     return this.prisma.site.findMany({
-      select: { id: true, name: true, timezone: true, restArea: true, restWbgtC: true, crews: { select: { id: true, name: true } } },
+      where: { orgId },
+      select: {
+        id: true,
+        name: true,
+        timezone: true,
+        restArea: true,
+        restWbgtC: true,
+        crews: { where: supervisorId ? { supervisorId } : undefined, select: { id: true, name: true } },
+      },
       orderBy: { name: 'asc' },
     });
   }
