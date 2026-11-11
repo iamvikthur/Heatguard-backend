@@ -138,3 +138,9 @@ def test_measured_rest_area_wbgt_is_used():
 def test_clothing_adjustment_raises_effective_wbgt():
     body = {"weather": WEATHER, "metabolicWatts": 300, "wbgtC": 25.0, "clothingAdjC": 3.0}
     assert client.post("/assess", json=body).json()["wbgtEffectiveC"] == 28.0
+
+
+def test_fallback_mode_is_one_level_stricter():
+    body = {"weather": WEATHER, "metabolicWatts": 415, "wbgtC": 28.5}
+    assert client.post("/assess", json=body).json()["level"] == "ORANGE"
+    assert client.post("/assess", json={**body, "fallback": True}).json()["level"] == "RED"

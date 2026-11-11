@@ -47,6 +47,8 @@ class AssessRequest(Wire):
     rest_in_shade: bool = True
     # Optional measured WBGT of the rest area, e.g. a cooled cabin.
     rest_wbgt_c: float | None = None
+    # Degraded mode (stale weather, missing model): make the level one step stricter.
+    fallback: bool = False
 
 
 class AssessResponse(Wire):

@@ -33,6 +33,8 @@ def assess(req: AssessRequest) -> AssessResponse:
     work_min = limits.work_minutes(effective, req.metabolic_watts, req.acclimatized, rest_wbgt + adj)
     work_min_sun = limits.work_minutes(effective, req.metabolic_watts, req.acclimatized)
     level = limits.classify(effective, limit, work_min)
+    if req.fallback:
+        level = limits.raise_level(level)
     return AssessResponse(
         wbgt_c=round(wbgt, 2),
         wbgt_effective_c=round(effective, 2),

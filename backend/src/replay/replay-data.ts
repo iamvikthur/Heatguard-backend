@@ -1,0 +1,65 @@
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import type { HourlyWeather } from '../weather/weather.types.js';
+
+/** Sites that data/pull_open_meteo.py downloads. Keep in step with that script. */
+const REPLAY_SITES = [
+  { slug: 'mussafah', latitude: 24.35, longitude: 54.5 },
+  { slug: 'kizad', latitude: 24.72, longitude: 54.72 },
+];
+
+export function replaySlug(latitude: number, longitude: number): string | null {
+  const match = REPLAY_SITES.find(
+    (s) => Math.abs(s.latitude - latitude) < 0.01 && Math.abs(s.longitude - longitude) < 0.01,
+  );
+  return match?.slug ?? null;
+}
+
+/** Parses an observed_<site>_<yyyy-mm>.csv file and keeps the rows for one UTC date. */
+export function parseObservedCsv(csv: string, date: string): HourlyWeather[] {
+  const [headerLine, ...lines] = csv.trim().split(/\r?\n/);
+  const columns = headerLine.split(',');
+  const at = (name: string) => {
+    const index = columns.indexOf(name);
+    if (index === -1) throw new Error(`Replay file has no ${name} column`);
+    return index;
+  };
+  const time = at('time');
+  const temp = at('temperature_2m');
+  const humidity = at('relative_humidity_2m');
+  const wind = at('wind_speed_10m');
+  const radiation = at('shortwave_radiation');
+  const direct = at('direct_radiation');
+
+  const rows: HourlyWeather[] = [];
+  for (const line of lines) {
+    const cells = line.split(',');
+    if (!cells[time].startsWith(date)) continue;
+    const values = [temp, humidity, wind, radiation].map((i) => Number(cells[i]));
+    if (values.some((v) => !Number.isFinite(v)) || cells[temp] === '') continue;
+    const directValue = Number(cells[direct]);
+    rows.push({
+      validAt: new Date(`${cells[time]}:00Z`),
+      tempC: values[0],
+      humidityPct: values[1],
+      windMs: values[2],
+      radiationWm2: values[3],
+      directRadiationWm2: cells[direct] !== '' && Number.isFinite(directValue) ? directValue : null,
+      pressureHpa: null,
+    });
+  }
+  return rows;
+}
+
+/** Reads one day of observed weather from data/raw (REPLAY_DATA_DIR overrides the folder). */
+export async function loadObservedDay(slug: string, date: string): Promise<HourlyWeather[]> {
+  const dir = process.env.REPLAY_DATA_DIR ?? resolve(process.cwd(), '..', 'data', 'raw');
+  const file = resolve(dir, `observed_${slug}_${date.slice(0, 7)}.csv`);
+  let csv: string;
+  try {
+    csv = await readFile(file, 'utf8');
+  } catch {
+    throw new Error(`No replay data for ${slug} in ${date.slice(0, 7)}. Run data/pull_open_meteo.py first.`);
+  }
+  return parseObservedCsv(csv, date);
+}

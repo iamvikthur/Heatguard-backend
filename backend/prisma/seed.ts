@@ -59,11 +59,14 @@ async function main() {
   }
 
   // Approximate coordinates for two Abu Dhabi industrial areas.
+  // Rest area: a cooled cabin. 22 C WBGT is an assumed demo value, not a
+  // measurement; a real site must measure its own rest area.
+  const restArea = { restArea: 'COOLED' as const, restWbgtC: 22 };
   const mussafah = await prisma.site.create({
-    data: { orgId: org.id, name: 'Mussafah Industrial Yard', latitude: 24.35, longitude: 54.5, timezone: 'Asia/Dubai' },
+    data: { orgId: org.id, name: 'Mussafah Industrial Yard', latitude: 24.35, longitude: 54.5, timezone: 'Asia/Dubai', ...restArea },
   });
   const kizad = await prisma.site.create({
-    data: { orgId: org.id, name: 'KIZAD Logistics Build', latitude: 24.72, longitude: 54.72, timezone: 'Asia/Dubai' },
+    data: { orgId: org.id, name: 'KIZAD Logistics Build', latitude: 24.72, longitude: 54.72, timezone: 'Asia/Dubai', ...restArea },
   });
 
   const crewDefs = [

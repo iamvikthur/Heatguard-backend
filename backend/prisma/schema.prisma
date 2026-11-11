@@ -46,6 +46,13 @@ enum AlertStatus {
   ACKNOWLEDGED
 }
 
+/// Where a site's crews take their rest breaks.
+enum RestArea {
+  SUN
+  SHADE
+  COOLED
+}
+
 enum WeatherSource {
   FORECAST
   OBSERVED
@@ -68,6 +75,9 @@ model Site {
   latitude  Float
   longitude Float
   timezone  String
+  restArea  RestArea @default(SHADE)
+  /// Measured WBGT of the rest area in degrees C. Required when restArea is COOLED.
+  restWbgtC Float?
   createdAt DateTime @default(now())
 
   org         Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -185,6 +195,8 @@ model WeatherSnapshot {
   humidityPct  Float
   windMs       Float
   radiationWm2 Float
+  directRadiationWm2 Float?
+  pressureHpa        Float?
 
   site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
@@ -208,8 +220,13 @@ model RiskAssessment {
   level         Level
   workMin       Int
   restMin       Int
+  /// WBGT assumed for rest breaks, and work minutes if rest were in the open sun.
+  restWbgtC        Float?
+  workMinRestInSun Int?
   /// True when computed in degraded mode (missing weather, model or sensor).
   fallback      Boolean  @default(false)
+  /// True for rows produced by replaying a past day from data/raw.
+  isReplay      Boolean  @default(false)
   modelVersion  String?
 
   site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
