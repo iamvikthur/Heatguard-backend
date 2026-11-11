@@ -1,0 +1,303 @@
+// HeatGuard data model. See ../IMPLEMENTATION_PLAN.md section 4.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPERVISOR
+  HSE
+  ADMIN
+}
+
+enum Level {
+  GREEN
+  YELLOW
+  ORANGE
+  RED
+}
+
+enum ConsentScope {
+  CHECKIN
+  WEARABLE
+}
+
+enum Channel {
+  APP
+  WHATSAPP
+  SMS
+}
+
+enum Extractor {
+  LLM
+  KEYWORD
+  TAP
+}
+
+enum AlertStatus {
+  QUEUED
+  SENT
+  FAILED
+  ACKNOWLEDGED
+}
+
+enum WeatherSource {
+  FORECAST
+  OBSERVED
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  sites     Site[]
+  users     User[]
+  taskTypes TaskType[]
+}
+
+model Site {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  latitude  Float
+  longitude Float
+  timezone  String
+  createdAt DateTime @default(now())
+
+  org         Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  crews       Crew[]
+  weather     WeatherSnapshot[]
+  assessments RiskAssessment[]
+
+  @@index([orgId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  orgId        String
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  crews     Crew[]
+  auditLogs AuditLog[]
+
+  @@index([orgId])
+}
+
+model Crew {
+  id           String   @id @default(cuid())
+  siteId       String
+  name         String
+  supervisorId String?
+  createdAt    DateTime @default(now())
+
+  site        Site             @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  supervisor  User?            @relation(fields: [supervisorId], references: [id], onDelete: SetNull)
+  workers     Worker[]
+  shifts      Shift[]
+  assessments RiskAssessment[]
+  alerts      Alert[]
+
+  @@index([siteId])
+}
+
+/// Workers are pseudonymous: no legal names are stored.
+model Worker {
+  id               String   @id @default(cuid())
+  crewId           String
+  pseudonym        String   @unique
+  language         String   // BCP-47 tag: en, ar, hi, ur, bn, ml
+  phone            String?
+  /// Date the worker started (or restarted) heat exposure on site.
+  acclimatizedFrom DateTime
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  crew     Crew             @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  consents Consent[]
+  risks    WorkerRisk[]
+  checkIns CheckIn[]
+  alerts   Alert[]
+  samples  WearableSample[]
+
+  @@index([crewId])
+}
+
+model TaskType {
+  id             String @id @default(cuid())
+  orgId          String
+  name           String
+  /// Metabolic rate in watts for the workload class.
+  metabolicWatts Int
+  /// Clothing/PPE adjustment added to WBGT, in degrees C.
+  clothingAdjC   Float  @default(0)
+
+  org    Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  shifts Shift[]
+
+  @@unique([orgId, name])
+}
+
+model Shift {
+  id         String   @id @default(cuid())
+  crewId     String
+  taskTypeId String
+  startsAt   DateTime
+  endsAt     DateTime
+
+  crew     Crew     @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  taskType TaskType @relation(fields: [taskTypeId], references: [id], onDelete: Cascade)
+
+  @@index([crewId, startsAt])
+}
+
+model Consent {
+  id          String       @id @default(cuid())
+  workerId    String
+  scope       ConsentScope
+  grantedAt   DateTime     @default(now())
+  withdrawnAt DateTime?
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([workerId, scope])
+}
+
+model WeatherSnapshot {
+  id           String        @id @default(cuid())
+  siteId       String
+  source       WeatherSource
+  /// Time the values apply to.
+  validAt      DateTime
+  /// Time the forecast was issued (equals validAt for observations).
+  issuedAt     DateTime
+  tempC        Float
+  humidityPct  Float
+  windMs       Float
+  radiationWm2 Float
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, source, validAt, issuedAt])
+  @@index([siteId, validAt])
+}
+
+/// One row per crew per time step: now and each hour of the 6-hour outlook.
+model RiskAssessment {
+  id            String   @id @default(cuid())
+  siteId        String
+  crewId        String
+  computedAt    DateTime @default(now())
+  validAt       DateTime
+  /// Minutes ahead of computedAt; 0 = current conditions.
+  horizonMin    Int      @default(0)
+  wbgtRaw       Float
+  wbgtCorrected Float?
+  wbgtEffective Float
+  limitC        Float
+  level         Level
+  workMin       Int
+  restMin       Int
+  /// True when computed in degraded mode (missing weather, model or sensor).
+  fallback      Boolean  @default(false)
+  modelVersion  String?
+
+  site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  crew        Crew         @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  workerRisks WorkerRisk[]
+
+  @@index([crewId, validAt])
+  @@index([siteId, computedAt])
+}
+
+/// Individual uplift over the crew level (symptoms, acclimatization, wearable drift).
+model WorkerRisk {
+  id           String   @id @default(cuid())
+  workerId     String
+  assessmentId String
+  level        Level
+  reasons      String[]
+  createdAt    DateTime @default(now())
+
+  worker     Worker         @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  assessment RiskAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([workerId, createdAt])
+}
+
+model CheckIn {
+  id         String    @id @default(cuid())
+  workerId   String
+  channel    Channel
+  language   String
+  /// Raw text or speech transcript. Cleared by the retention job.
+  transcript String?
+  /// Fixed symptom schema returned by the intake service.
+  symptoms   Json
+  redFlag    Boolean   @default(false)
+  extractor  Extractor
+  createdAt  DateTime  @default(now())
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([workerId, createdAt])
+}
+
+model Alert {
+  id        String      @id @default(cuid())
+  workerId  String?
+  crewId    String?
+  level     Level
+  /// Action code: HYDRATE, REST, COOL, REDUCE, ROTATE, ESCALATE.
+  action    String
+  channel   Channel
+  language  String
+  status    AlertStatus @default(QUEUED)
+  createdAt DateTime    @default(now())
+  sentAt    DateTime?
+  ackAt     DateTime?
+
+  worker Worker? @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  crew   Crew?   @relation(fields: [crewId], references: [id], onDelete: Cascade)
+
+  @@index([workerId, createdAt])
+  @@index([crewId, createdAt])
+}
+
+/// Simulated in the prototype.
+model WearableSample {
+  id        String   @id @default(cuid())
+  workerId  String
+  at        DateTime
+  heartRate Int
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([workerId, at])
+}
+
+/// Every read or change of individual worker data is recorded here.
+model AuditLog {
+  id       String   @id @default(cuid())
+  actorId  String?
+  action   String
+  entity   String
+  entityId String?
+  detail   Json?
+  at       DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([actorId, at])
+}
