@@ -32,8 +32,8 @@ async function main() {
     data: { name: 'Demo Contracting LLC' },
   });
 
-  // TODO(verify): metabolic rates and clothing adjustments are placeholders
-  // until checked against NIOSH 2016-106 and the ACGIH clothing table.
+  // Metabolic rates: OSHA workload table. Clothing adjustment 0 = ordinary
+  // work clothing (NIOSH 2016-106 Table 3-2). See docs/risk-model.md.
   const taskDefs = [
     { name: 'Light: inspection, signalling', metabolicWatts: 180, clothingAdjC: 0 },
     { name: 'Moderate: formwork, scaffolding', metabolicWatts: 300, clothingAdjC: 0 },
