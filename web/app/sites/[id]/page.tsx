@@ -161,7 +161,6 @@ export default function SitePage() {
             <ul>
               {checks.map((entry) => (
                 <li key={entry.id}>
-                  <span className="who">{entry.worker?.pseudonym ?? 'Worker'}</span>
                   <span className="body">
                     {entry.reason === 'RED_FLAG' && <span className="emergency">Emergency. </span>}
                     {entry.body}

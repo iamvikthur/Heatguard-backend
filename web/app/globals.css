@@ -203,10 +203,6 @@ button {
   border-top: 1px solid var(--rule);
 }
 
-.needscheck .who {
-  font-weight: 600;
-}
-
 .needscheck .body {
   flex: 1;
   min-width: 16rem;
@@ -330,12 +326,12 @@ button {
 }
 
 .strip-hour {
-  width: 3rem;
+  width: 3.25rem;
   text-align: center;
 }
 
 .strip-bar {
-  height: 3.5rem;
+  height: 4.5rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
