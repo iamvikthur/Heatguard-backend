@@ -25,4 +25,9 @@ What it shows for each crew:
 The "Replayed day" tab shows the last day replayed through `POST /sites/:id/replay`.
 In November the live view is quiet, so the replayed summer day is what to demo.
 
-Not built yet: the worker page (schedule, check-in, consent).
+The worker page is at `/workers/<id>`, reached from the Workers row under each
+crew. It shows the worker's own schedule, the last message they were sent, and a
+check-in they make by tapping symptoms or typing. Everything the worker reads is
+in their own language, right to left for Arabic and Urdu.
+
+Workers have no login yet, so a supervisor opens this page on their behalf.

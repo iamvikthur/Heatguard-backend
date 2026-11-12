@@ -49,6 +49,41 @@ export interface NeedsCheckEntry {
   worker: { id: string; pseudonym: string } | null;
 }
 
+export interface WorkerToday {
+  worker: {
+    id: string;
+    pseudonym: string;
+    language: string;
+    direction: 'ltr' | 'rtl';
+    crewName: string;
+    siteName: string;
+    timezone: string;
+  };
+  schedule: {
+    level: Level;
+    workMin: number;
+    restMin: number;
+    validAt: string;
+    isOwn: boolean;
+    reasons: string[];
+  } | null;
+  message: { body: string; language: string; level: Level; createdAt: string } | null;
+  consents: Record<'CHECKIN' | 'WEARABLE', boolean>;
+  symptomOptions: { name: string; label: string }[];
+}
+
+export interface CheckInResult {
+  checkInId: string;
+  action: 'ESCALATED' | 'URGENT_CHECK' | 'STRICTER_SCHEDULE' | 'CHECK_REQUESTED' | 'NONE';
+  reported: string[];
+  redFlags: string[];
+  disputedFlags: string[];
+  extractor: 'LLM' | 'KEYWORD' | 'TAP';
+  modelError: string | null;
+  needsTapCheckin: boolean;
+  schedule: { level: Level; workMin: number; restMin: number } | null;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -110,6 +145,17 @@ export const api = {
   needsCheck: (crewId: string) => request<NeedsCheckEntry[]>(`/crews/${crewId}/needs-check`),
   acknowledge: (alertId: string) => request<unknown>(`/alerts/${alertId}/ack`, { method: 'POST' }),
   runSite: (siteId: string) => request<unknown>(`/sites/${siteId}/risk/run`, { method: 'POST' }),
+  crewWorkers: (crewId: string) =>
+    request<{ id: string; pseudonym: string; language: string; acclimatizedFrom: string }[]>(`/crews/${crewId}/workers`),
+  workerToday: (workerId: string, replay: boolean) =>
+    request<WorkerToday>(`/workers/${workerId}/today${replay ? '?replay=true' : ''}`),
+  setConsent: (workerId: string, scope: 'CHECKIN' | 'WEARABLE', granted: boolean) =>
+    request<Record<string, boolean>>(`/workers/${workerId}/consents`, {
+      method: 'POST',
+      body: JSON.stringify({ scope, granted }),
+    }),
+  checkIn: (workerId: string, body: { text?: string; taps?: string[]; replay?: boolean }) =>
+    request<CheckInResult>(`/workers/${workerId}/checkins`, { method: 'POST', body: JSON.stringify(body) }),
 };
 
 /** Time of day at the site, not in the viewer's own time zone. */

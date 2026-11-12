@@ -33,6 +33,7 @@ export default function SitePage() {
   const [user, setUser] = useState<User | null>(null);
   const [outlook, setOutlook] = useState<Outlook | null>(null);
   const [checks, setChecks] = useState<Entry[]>([]);
+  const [crewWorkers, setCrewWorkers] = useState<Record<string, { id: string; pseudonym: string }[]>>({});
   const [replay, setReplay] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
@@ -48,16 +49,14 @@ export default function SitePage() {
           setError('That site is not available to you.');
           return;
         }
-        const [next, ...queues] = await Promise.all([
+        const [next, queues, rosters] = await Promise.all([
           api.outlook(siteId, showReplay),
-          ...found.crews.map((crew) => api.needsCheck(crew.id).then((rows) => ({ crew, rows }))),
+          Promise.all(found.crews.map((crew) => api.needsCheck(crew.id).then((rows) => ({ crew, rows })))),
+          Promise.all(found.crews.map((crew) => api.crewWorkers(crew.id).then((rows) => [crew.id, rows] as const))),
         ]);
-        setOutlook(next as Outlook);
-        setChecks(
-          (queues as { crew: { id: string; name: string }; rows: NeedsCheckEntry[] }[]).flatMap(({ crew, rows }) =>
-            rows.map((row) => ({ ...row, crewName: crew.name })),
-          ),
-        );
+        setOutlook(next);
+        setChecks(queues.flatMap(({ crew, rows }) => rows.map((row) => ({ ...row, crewName: crew.name }))));
+        setCrewWorkers(Object.fromEntries(rosters));
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
           session.clear();
@@ -183,7 +182,14 @@ export default function SitePage() {
         )}
 
         {outlook?.crews.map((crew) => (
-          <Crew key={crew.crewId} name={crew.name} hours={crew.hours} timezone={timezone} replay={replay} />
+          <Crew
+            key={crew.crewId}
+            name={crew.name}
+            hours={crew.hours}
+            timezone={timezone}
+            replay={replay}
+            workers={crewWorkers[crew.crewId] ?? []}
+          />
         ))}
       </main>
     </>
@@ -195,11 +201,13 @@ function Crew({
   hours,
   timezone,
   replay,
+  workers,
 }: {
   name: string;
   hours: OutlookHour[];
   timezone: string;
   replay: boolean;
+  workers: { id: string; pseudonym: string }[];
 }) {
   const [index, setIndex] = useState(0);
   const hour = hours[Math.min(index, hours.length - 1)];
@@ -247,6 +255,17 @@ function Crew({
           {hour.workersAtHigherLevel} {hour.workersAtHigherLevel === 1 ? 'worker is' : 'workers are'} on a stricter
           schedule than the rest of the crew.
         </p>
+      )}
+
+      {workers.length > 0 && (
+        <div className="crew-workers">
+          <span className="label">Workers</span>
+          {workers.map((worker) => (
+            <Link key={worker.id} href={`/workers/${worker.id}${replay ? '?replay=true' : ''}`}>
+              {worker.pseudonym}
+            </Link>
+          ))}
+        </div>
       )}
 
       {hours.length > 1 && (
