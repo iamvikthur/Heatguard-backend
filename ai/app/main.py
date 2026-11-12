@@ -5,7 +5,8 @@ from fastapi import FastAPI, HTTPException
 from app.rules import limits
 from app.rules.wbgt import estimate_shade_wbgt_c, estimate_wbgt_c
 from app.forecast import service as forecast
-from app.schemas import AssessRequest, AssessResponse, ForecastRequest, ForecastResponse
+from app.forecast import plan as planning
+from app.schemas import AssessRequest, AssessResponse, ForecastRequest, ForecastResponse, PlanRequest, PlanResponse
 
 app = FastAPI(title="HeatGuard AI service", version="0.1.0")
 
@@ -18,11 +19,13 @@ def health() -> dict:
 @app.post("/assess", response_model=AssessResponse, response_model_by_alias=True)
 def assess(req: AssessRequest) -> AssessResponse:
     try:
-        wbgt = req.wbgt_c if req.wbgt_c is not None else estimate_wbgt_c(req.weather)
+        estimated = estimate_wbgt_c(req.weather)
+        wbgt = req.wbgt_c if req.wbgt_c is not None else estimated
         if req.rest_wbgt_c is not None:
             rest_wbgt = req.rest_wbgt_c
-        elif req.rest_in_shade and req.wbgt_c is None:
-            rest_wbgt = estimate_shade_wbgt_c(req.weather)
+        elif req.rest_in_shade:
+            # Shade removes the same amount of heat whether WBGT was estimated or supplied.
+            rest_wbgt = wbgt - (estimated - estimate_shade_wbgt_c(req.weather))
         else:
             rest_wbgt = wbgt
     except ValueError as err:
@@ -60,3 +63,15 @@ def correct_forecast(req: ForecastRequest) -> ForecastResponse:
     except ValueError as err:
         raise HTTPException(status_code=422, detail=str(err)) from err
     return ForecastResponse(model_version=version, hours=hours)
+
+
+@app.post("/plan", response_model=PlanResponse, response_model_by_alias=True)
+def plan(req: PlanRequest) -> PlanResponse:
+    """Planning estimate for a coming day from its 24-hour-ahead forecast and recent history.
+
+    For planning only. Work/rest decisions on the day come from /assess on the live forecast.
+    """
+    try:
+        return planning.make_plan(req)
+    except ValueError as err:
+        raise HTTPException(status_code=422, detail=str(err)) from err

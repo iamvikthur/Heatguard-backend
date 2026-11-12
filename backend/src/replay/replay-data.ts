@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import type { HourlyWeather } from '../weather/weather.types.js';
+import type { ForecastPair, HourlyWeather } from '../weather/weather.types.js';
 
 /** Sites that data/pull_open_meteo.py downloads. Keep in step with that script. */
 const REPLAY_SITES = [
@@ -62,4 +62,71 @@ export async function loadObservedDay(slug: string, date: string): Promise<Hourl
     throw new Error(`No replay data for ${slug} in ${date.slice(0, 7)}. Run data/pull_open_meteo.py first.`);
   }
   return parseObservedCsv(csv, date);
+}
+
+const CORE = ['temperature_2m', 'relative_humidity_2m', 'wind_speed_10m', 'shortwave_radiation', 'direct_radiation'];
+
+/** Parses a data/raw CSV into rows, reading each variable with an optional column suffix. */
+export function parseWeatherCsv(csv: string, suffix = ''): HourlyWeather[] {
+  const [headerLine, ...lines] = csv.trim().split(/\r?\n/);
+  const columns = headerLine.split(',');
+  const time = columns.indexOf('time');
+  const index = CORE.map((name) => columns.indexOf(`${name}${suffix}`));
+  if (time === -1 || index.some((i) => i === -1)) {
+    throw new Error(`Replay file is missing a ${suffix || 'weather'} column`);
+  }
+  const rows: HourlyWeather[] = [];
+  for (const line of lines) {
+    const cells = line.split(',');
+    if (index.slice(0, 4).some((i) => cells[i] === '' || cells[i] === undefined)) continue;
+    const [tempC, humidityPct, windMs, radiationWm2, direct] = index.map((i) => Number(cells[i]));
+    if (![tempC, humidityPct, windMs, radiationWm2].every(Number.isFinite)) continue;
+    rows.push({
+      validAt: new Date(`${cells[time]}:00Z`),
+      tempC,
+      humidityPct,
+      windMs,
+      radiationWm2,
+      directRadiationWm2: cells[index[4]] !== '' && Number.isFinite(direct) ? direct : null,
+      pressureHpa: null,
+    });
+  }
+  return rows;
+}
+
+/**
+ * Forecast and observed weather from data/raw for every hour between two UTC dates
+ * (YYYY-MM-DD, inclusive). Returns an empty list when a month's files are not there.
+ */
+export async function loadForecastPairs(slug: string, startDate: string, endDate: string): Promise<ForecastPair[]> {
+  const dir = process.env.REPLAY_DATA_DIR ?? resolve(process.cwd(), '..', 'data', 'raw');
+  const months: string[] = [];
+  for (let d = new Date(`${startDate.slice(0, 7)}-01T00:00:00Z`); d.toISOString().slice(0, 7) <= endDate.slice(0, 7); d.setUTCMonth(d.getUTCMonth() + 1)) {
+    months.push(d.toISOString().slice(0, 7));
+  }
+  const byTime = new Map<number, ForecastPair>();
+  const entry = (validAt: Date) => {
+    const existing = byTime.get(validAt.getTime());
+    if (existing) return existing;
+    const created: ForecastPair = { validAt, forecast: null, observed: null };
+    byTime.set(validAt.getTime(), created);
+    return created;
+  };
+  for (const month of months) {
+    let forecastCsv: string;
+    let observedCsv: string;
+    try {
+      forecastCsv = await readFile(resolve(dir, `forecast_${slug}_${month}.csv`), 'utf8');
+      observedCsv = await readFile(resolve(dir, `observed_${slug}_${month}.csv`), 'utf8');
+    } catch {
+      continue; // history may start before the downloaded summer; use what exists
+    }
+    for (const row of parseWeatherCsv(forecastCsv, '_previous_day1')) entry(row.validAt).forecast = row;
+    for (const row of parseWeatherCsv(observedCsv)) entry(row.validAt).observed = row;
+  }
+  const from = Date.parse(`${startDate}T00:00:00Z`);
+  const to = Date.parse(`${endDate}T23:59:59Z`);
+  return [...byTime.values()]
+    .filter((pair) => pair.validAt.getTime() >= from && pair.validAt.getTime() <= to)
+    .sort((a, b) => a.validAt.getTime() - b.validAt.getTime());
 }

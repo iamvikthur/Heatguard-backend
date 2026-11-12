@@ -93,3 +93,36 @@ class ForecastResponse(Wire):
 
     model_version: str
     hours: list[ForecastHourResult]
+
+
+class HistoryHour(Wire):
+    """A past hour: what was forecast for it 24 hours ahead, and what was observed."""
+
+    forecast: Weather
+    observed: Weather
+
+
+class PlanRequest(Wire):
+    # Recent hours for the same site, ideally the last 46 days.
+    history: list[HistoryHour] = Field(max_length=24 * 60)
+    # The 24-hour-ahead forecast for the day being planned.
+    target: list[Weather] = Field(min_length=1, max_length=48)
+
+
+class PlanHour(Wire):
+    valid_at: datetime
+    wbgt_raw_c: float
+    # Planning estimate. Equal to the raw value when the correction is switched off.
+    wbgt_plan_c: float
+
+
+class PlanResponse(Wire):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, protected_namespaces=())
+
+    model_version: str
+    # False when recent history is too short or shows no clear forecast bias.
+    active: bool
+    history_hours_used: int
+    # Mean observed minus forecast WBGT over the hours used, or null when none.
+    window_bias_c: float | None
+    hours: list[PlanHour]
