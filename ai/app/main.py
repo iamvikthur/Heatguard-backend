@@ -6,14 +6,16 @@ from app.rules import limits
 from app.rules.wbgt import estimate_shade_wbgt_c, estimate_wbgt_c
 from app.forecast import service as forecast
 from app.forecast import plan as planning
-from app.schemas import AssessRequest, AssessResponse, ForecastRequest, ForecastResponse, PlanRequest, PlanResponse
+from app.intake import provider as intake_provider
+from app.intake import service as intake
+from app.schemas import AssessRequest, AssessResponse, ForecastRequest, ForecastResponse, IntakeRequest, IntakeResponse, PlanRequest, PlanResponse
 
 app = FastAPI(title="HeatGuard AI service", version="0.1.0")
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "models": {"forecast": forecast.model_version(), "intake": None}}
+    return {"status": "ok", "models": {"forecast": forecast.model_version(), "intake": intake_provider.describe()}}
 
 
 @app.post("/assess", response_model=AssessResponse, response_model_by_alias=True)
@@ -35,6 +37,7 @@ def assess(req: AssessRequest) -> AssessResponse:
     effective = wbgt + adj
     limit = limits.wbgt_limit_c(req.metabolic_watts, req.acclimatized)
     work_min = limits.work_minutes(effective, req.metabolic_watts, req.acclimatized, rest_wbgt + adj)
+    work_min = max(0, work_min - limits.WORK_STEP_MIN * req.stricter_steps)
     work_min_sun = limits.work_minutes(effective, req.metabolic_watts, req.acclimatized)
     level = limits.classify(effective, limit, work_min)
     if req.fallback:
@@ -75,3 +78,18 @@ def plan(req: PlanRequest) -> PlanResponse:
         return planning.make_plan(req)
     except ValueError as err:
         raise HTTPException(status_code=422, detail=str(err)) from err
+
+
+@app.post("/intake", response_model=IntakeResponse, response_model_by_alias=True)
+def symptom_intake(req: IntakeRequest) -> IntakeResponse:
+    """Extracts the fixed symptom list from a worker's message or recording.
+
+    The model only extracts. Red-flag keywords are applied even if the model fails.
+    """
+    try:
+        return intake.run_intake(req)
+    except intake.IntakeError as err:
+        raise HTTPException(status_code=422, detail=str(err)) from err
+    except intake_provider.ProviderError as err:
+        # Only reached when a recording could not be transcribed: there is no text to fall back on.
+        raise HTTPException(status_code=502, detail=str(err)) from err

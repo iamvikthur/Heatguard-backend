@@ -98,7 +98,7 @@ HeatGuard's own labels, not NIOSH's.
 | ORANGE | 30 or 45 minutes of work per hour |
 | RED | 15 minutes or none |
 
-Individual uplift: any reported symptom raises that worker one level; a red-flag symptom sets RED and escalates. Fallback mode (missing weather or model) raises one level.
+Individual uplift: a worker who reports any symptom is put one 15-minute step below what the rules would otherwise allow, for two hours, and their supervisor is asked to check on them. A red-flag symptom triggers the emergency path instead. Fallback mode (missing weather or model) raises the level by one.
 
 ## 7. Acclimatization
 
@@ -110,7 +110,19 @@ Source: NIOSH 2016-106 Table 4-1 and Section 4.1.5. Verified.
 
 HeatGuard rule: treat a worker as unacclimatized for the first 14 days on site and after 7 or more days away. The stepped daily percentages are not implemented.
 
-## 8. Red flags
+## 8. Symptom check-ins and red flags
+
+A worker's message (text or a recording) is turned into a fixed list of eleven symptoms by a language model that may only answer true or false for each. The model never sets a level. A keyword net for the four red flags runs alongside it:
+
+| Model | Keyword net | Result |
+| --- | --- | --- |
+| Says a red flag is present | any | Emergency path |
+| Fails, times out or breaks the schema | Finds a red flag | Emergency path |
+| Says no red flag | Finds a red-flag phrase | Urgent in-person check (usually a negation such as "I have not vomited", possibly a miss) |
+| Fails | Finds nothing | Worker is asked to tap their symptoms |
+
+Only the worker's words are sent to the model provider: no name, phone number, worker id or site. Supervisors are told to check on a worker, not which symptoms were reported, except in an emergency. The Arabic and Hindi keyword lists and test phrases are machine-drafted and unreviewed; Urdu, Bengali and Malayalam are not covered.
+
 
 NIOSH describes heat stroke as a medical emergency with central nervous system signs: loss of consciousness, often preceded by vertigo, nausea, headache, confusion or bizarre behaviour. It also warns that continued sweating does not rule heat stroke out. So "stopped sweating" is one red flag among several and is never required. Emergency response: call for help at once and cool the worker.
 

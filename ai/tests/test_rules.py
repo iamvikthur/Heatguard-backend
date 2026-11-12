@@ -144,3 +144,19 @@ def test_fallback_mode_is_one_level_stricter():
     body = {"weather": WEATHER, "metabolicWatts": 415, "wbgtC": 28.5, "restInShade": False}
     assert client.post("/assess", json=body).json()["level"] == "ORANGE"
     assert client.post("/assess", json={**body, "fallback": True}).json()["level"] == "RED"
+
+
+def test_symptoms_take_a_step_off_the_work_time():
+    body = {"weather": WEATHER, "metabolicWatts": 415, "wbgtC": 28.5, "restInShade": False}
+    base = client.post("/assess", json=body).json()
+    stricter = client.post("/assess", json={**body, "stricterSteps": 1}).json()
+    assert base["workMin"] == 30 and stricter["workMin"] == 15
+    assert stricter["level"] == "RED"
+    assert client.post("/assess", json={**body, "stricterSteps": 4}).json()["workMin"] == 0
+
+
+def test_symptoms_tighten_a_full_work_schedule_too():
+    body = {"weather": WEATHER, "metabolicWatts": 180, "wbgtC": 22.0, "restInShade": False}
+    assert client.post("/assess", json=body).json()["level"] == "GREEN"
+    stricter = client.post("/assess", json={**body, "stricterSteps": 1}).json()
+    assert stricter["workMin"] == 45 and stricter["level"] == "ORANGE"

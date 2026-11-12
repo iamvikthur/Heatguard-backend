@@ -49,6 +49,8 @@ class AssessRequest(Wire):
     rest_wbgt_c: float | None = None
     # Degraded mode (stale weather, missing model): make the level one step stricter.
     fallback: bool = False
+    # Take this many 15-minute steps off the permitted work time (a worker who reported symptoms).
+    stricter_steps: int = Field(default=0, ge=0, le=4)
 
 
 class AssessResponse(Wire):
@@ -126,3 +128,49 @@ class PlanResponse(Wire):
     # Mean observed minus forecast WBGT over the hours used, or null when none.
     window_bias_c: float | None
     hours: list[PlanHour]
+
+
+class Symptoms(BaseModel):
+    """The fixed symptom list. Field names are part of the contract with the model."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    dizziness: bool = False
+    headache: bool = False
+    nausea: bool = False
+    cramps: bool = False
+    heavy_sweating: bool = False
+    stopped_sweating: bool = False
+    confusion: bool = False
+    fainting: bool = False
+    vomiting: bool = False
+    very_thirsty: bool = False
+    weakness: bool = False
+
+
+class IntakeRequest(Wire):
+    # The worker's message, or a recording of it. Send one of the two.
+    text: str | None = None
+    audio_base64: str | None = None
+    audio_filename: str | None = None
+
+
+class IntakeResponse(Wire):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, protected_namespaces=())
+
+    transcript: str
+    from_audio: bool
+    symptoms: Symptoms
+    # Names of the symptoms that are true, and which of them are red flags.
+    reported: list[str]
+    red_flags: list[str]
+    red_flag: bool
+    # Red flags found by the keyword net, whatever the model said.
+    keyword_flags: list[str]
+    # Keyword hits the model did not confirm. Not an emergency, but someone must check in person.
+    disputed_flags: list[str]
+    needs_urgent_check: bool
+    # LLM: the model's answer was used. KEYWORD: the model failed and only keywords were used.
+    extractor: str
+    model_error: str | None
+    needs_tap_checkin: bool

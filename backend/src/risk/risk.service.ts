@@ -3,6 +3,7 @@ import { AiClient, type AssessRequest } from '../ai/ai.client.js';
 import { LEVEL_RANK, type CrewAlertState } from '../alerts/alert-rules.js';
 import { AlertsService, type Schedule } from '../alerts/alerts.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SYMPTOM_HOLD_MIN } from '../checkins/checkins.service.js';
 import { loadObservedDay, replaySlug } from '../replay/replay-data.js';
 import { OpenMeteoClient } from '../weather/open-meteo.client.js';
 import type { HourlyWeather } from '../weather/weather.types.js';
@@ -238,6 +239,34 @@ export class RiskService implements OnModuleInit, OnModuleDestroy {
             }
           } catch (err) {
             skipped.push(`${crew.name} unacclimatized check: ${String(err)}`);
+          }
+        }
+
+        // Live runs only: a worker who reported symptoms in the last two hours stays one step stricter.
+        if (!isReplay) {
+          const recent = await this.prisma.checkIn.findMany({
+            where: {
+              workerId: { in: crew.workers.map((w) => w.id) },
+              symptomCount: { gt: 0 },
+              createdAt: { gte: new Date(Date.now() - SYMPTOM_HOLD_MIN * 60 * 1000) },
+            },
+            distinct: ['workerId'],
+            select: { workerId: true },
+          });
+          for (const { workerId } of recent) {
+            const worker = crew.workers.find((w) => w.id === workerId);
+            if (!worker) continue;
+            try {
+              const strict = await this.ai.assess({ ...request, acclimatized: worker.acclimatizedFrom <= cutoff, stricterSteps: 1 });
+              const own = { level: strict.level, workMin: strict.workMin, restMin: strict.restMin };
+              await this.prisma.workerRisk.create({
+                data: { workerId, assessmentId: assessment.id, ...own, reasons: ['SYMPTOMS'] },
+              });
+              workerRisks += 1;
+              overrides.set(workerId, own);
+            } catch (err) {
+              skipped.push(`${crew.name} symptom hold: ${String(err)}`);
+            }
           }
         }
 

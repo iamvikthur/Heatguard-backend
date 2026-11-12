@@ -22,6 +22,8 @@ export interface AssessRequest {
   /** Use this WBGT instead of estimating it from the weather (planning values). */
   wbgtC?: number;
   fallback: boolean;
+  /** 15-minute steps to take off the work time, for a worker who reported symptoms. */
+  stricterSteps?: number;
 }
 
 export interface AssessResponse {
@@ -35,6 +37,27 @@ export interface AssessResponse {
   restWbgtC: number;
   workMinRestInSun: number;
   action: string;
+}
+
+export interface IntakeRequest {
+  text?: string;
+  audioBase64?: string;
+  audioFilename?: string;
+}
+
+export interface IntakeResponse {
+  transcript: string;
+  fromAudio: boolean;
+  symptoms: Record<string, boolean>;
+  reported: string[];
+  redFlags: string[];
+  redFlag: boolean;
+  keywordFlags: string[];
+  disputedFlags: string[];
+  needsUrgentCheck: boolean;
+  extractor: 'LLM' | 'KEYWORD';
+  modelError: string | null;
+  needsTapCheckin: boolean;
 }
 
 export type WeatherInput = AssessRequest['weather'];
@@ -64,6 +87,11 @@ export class AiClient {
   /** Planning estimate for a coming day. Fits a small model on the history, so it can take a few seconds. */
   plan(body: PlanRequest): Promise<PlanResponse> {
     return this.post<PlanResponse>('/plan', body, 60_000);
+  }
+
+  /** Extracts the fixed symptom list from a worker's message or recording. */
+  intake(body: IntakeRequest): Promise<IntakeResponse> {
+    return this.post<IntakeResponse>('/intake', body, 90_000);
   }
 
   private async post<T>(path: string, body: unknown, timeoutMs: number): Promise<T> {

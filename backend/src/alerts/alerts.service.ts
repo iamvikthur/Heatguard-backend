@@ -12,7 +12,9 @@ import {
 import {
   messageLanguage,
   supervisorCrewMessage,
+  supervisorCheckMessage,
   supervisorEmergencyMessage,
+  workerCheckinMessage,
   workerEmergencyMessage,
   workerMessage,
 } from './templates.js';
@@ -47,7 +49,7 @@ export class AlertsService {
   /** The last live (non-replay) heat alert sent for a crew. */
   async lastCrewState(crewId: string): Promise<CrewAlertState | null> {
     const last = await this.prisma.alert.findFirst({
-      where: { crewId, audience: 'SUPERVISOR', isReplay: false, reason: { not: 'RED_FLAG' } },
+      where: { crewId, audience: 'SUPERVISOR', isReplay: false, reason: { notIn: ['RED_FLAG', 'SYMPTOM'] } },
       orderBy: { createdAt: 'desc' },
       select: { level: true, validAt: true, assessment: { select: { workMin: true } } },
     });
@@ -57,7 +59,7 @@ export class AlertsService {
   /** Each worker's most recent live heat message. */
   private async lastWorkerMessages(workerIds: string[]): Promise<Map<string, WorkerMessageState>> {
     const rows = await this.prisma.alert.findMany({
-      where: { workerId: { in: workerIds }, audience: 'WORKER', isReplay: false, reason: { not: 'RED_FLAG' } },
+      where: { workerId: { in: workerIds }, audience: 'WORKER', isReplay: false, reason: { notIn: ['RED_FLAG', 'SYMPTOM'] } },
       orderBy: { createdAt: 'desc' },
       distinct: ['workerId'],
       select: { workerId: true, body: true, validAt: true },
@@ -188,6 +190,44 @@ export class AlertsService {
     return { workerAlert, supervisorAlert };
   }
 
+  /**
+   * A worker reported symptoms that are not an emergency: tell them to rest and
+   * ask the supervisor to check on them. `urgent` is for a possible red flag
+   * that the language model and the keyword net disagreed on.
+   */
+  async requestCheck(workerId: string, urgent: boolean, schedule?: Schedule) {
+    const worker = await this.prisma.worker.findUnique({ where: { id: workerId }, include: { crew: true } });
+    if (!worker) throw new NotFoundException(`Worker ${workerId} not found`);
+    const now = new Date();
+    const common = {
+      reason: 'SYMPTOM',
+      level: schedule?.level ?? ('YELLOW' as const),
+      action: 'REST',
+      channel: 'APP' as const,
+      status: 'SENT' as const,
+      validAt: now,
+      sentAt: now,
+      workerId: worker.id,
+    };
+    await this.prisma.alert.createMany({
+      data: [
+        {
+          ...common,
+          audience: 'WORKER',
+          body: workerCheckinMessage(worker.language),
+          language: messageLanguage(worker.language),
+        },
+        {
+          ...common,
+          crewId: worker.crewId,
+          audience: 'SUPERVISOR',
+          body: supervisorCheckMessage(worker.pseudonym, worker.crew.name, urgent, schedule),
+          language: 'en',
+        },
+      ],
+    });
+  }
+
   /** A crew's active workers. No names are stored, only pseudonyms. */
   crewWorkers(crewId: string) {
     return this.prisma.worker.findMany({
@@ -197,12 +237,12 @@ export class AlertsService {
     });
   }
 
-  /** Workers with an emergency the supervisor has not acknowledged yet. */
+  /** Workers with an emergency or a reported symptom that the supervisor has not acknowledged yet. */
   needsCheck(crewId: string) {
     return this.prisma.alert.findMany({
-      where: { crewId, audience: 'SUPERVISOR', reason: 'RED_FLAG', ackAt: null },
+      where: { crewId, audience: 'SUPERVISOR', reason: { in: ['RED_FLAG', 'SYMPTOM'] }, ackAt: null },
       orderBy: { createdAt: 'desc' },
-      select: { id: true, body: true, createdAt: true, worker: { select: { id: true, pseudonym: true } } },
+      select: { id: true, reason: true, body: true, createdAt: true, worker: { select: { id: true, pseudonym: true } } },
     });
   }
 

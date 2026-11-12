@@ -14,6 +14,7 @@ interface Texts {
   workRest: (level: string, work: number, rest: number) => string;
   stop: string;
   emergency: string;
+  checkinReceived: string;
 }
 
 const TEXTS: Record<Lang, Texts> = {
@@ -25,6 +26,7 @@ const TEXTS: Record<Lang, Texts> = {
       `HeatGuard ${level}: Each hour, work ${work} min, then rest ${rest} min in the rest area. Drink water. Tell your supervisor if you feel unwell.`,
     stop: 'HeatGuard RED: Stop work now and go to the rest area. Drink water. Tell your supervisor if you feel unwell.',
     emergency: 'HeatGuard EMERGENCY: Stop work now. Go to a cool place and sit down. Your supervisor is coming to you.',
+    checkinReceived: 'HeatGuard: Thank you for telling us. Go to the rest area now, sit down and drink water. Your supervisor will check on you.',
   },
   ar: {
     levels: { GREEN: 'أخضر', YELLOW: 'أصفر', ORANGE: 'برتقالي', RED: 'أحمر' },
@@ -34,6 +36,7 @@ const TEXTS: Record<Lang, Texts> = {
       `هيت غارد (${level}): في كل ساعة، اعمل ${work} دقيقة ثم استرح ${rest} دقيقة في منطقة الاستراحة. اشرب الماء. أخبر مشرفك إذا شعرت بتعب.`,
     stop: 'هيت غارد (أحمر): توقف عن العمل الآن واذهب إلى منطقة الاستراحة. اشرب الماء. أخبر مشرفك إذا شعرت بتعب.',
     emergency: 'هيت غارد - طوارئ: توقف عن العمل الآن. اذهب إلى مكان بارد واجلس. مشرفك قادم إليك.',
+    checkinReceived: 'هيت غارد: شكراً لإبلاغنا. اذهب إلى منطقة الاستراحة الآن، اجلس واشرب الماء. سيأتي مشرفك للاطمئنان عليك.',
   },
   hi: {
     levels: { GREEN: 'हरा', YELLOW: 'पीला', ORANGE: 'नारंगी', RED: 'लाल' },
@@ -43,6 +46,7 @@ const TEXTS: Record<Lang, Texts> = {
       `HeatGuard (${level}): हर घंटे ${work} मिनट काम करें, फिर ${rest} मिनट आराम क्षेत्र में आराम करें। पानी पिएं। तबीयत ठीक न लगे तो सुपरवाइज़र को बताएं।`,
     stop: 'HeatGuard (लाल): अभी काम रोकें और आराम क्षेत्र में जाएं। पानी पिएं। तबीयत ठीक न लगे तो सुपरवाइज़र को बताएं।',
     emergency: 'HeatGuard आपातकाल: अभी काम रोकें। ठंडी जगह पर जाकर बैठ जाएं। आपका सुपरवाइज़र आपके पास आ रहा है।',
+    checkinReceived: 'HeatGuard: बताने के लिए धन्यवाद। अभी आराम क्षेत्र में जाएं, बैठें और पानी पिएं। आपका सुपरवाइज़र आपको देखने आएगा।',
   },
 };
 
@@ -84,4 +88,17 @@ export const EMERGENCY_NUMBER = '998';
 export function supervisorEmergencyMessage(pseudonym: string, crewName: string, symptoms: string[]): string {
   const list = symptoms.length > 0 ? symptoms.join(', ') : 'red-flag symptoms';
   return `EMERGENCY: ${pseudonym} (${crewName}) reports ${list}. Go to them now, move them to a cool place, cool them with water, and call ${EMERGENCY_NUMBER}. Do not leave them alone.`;
+}
+
+export function workerCheckinMessage(preferred: string): string {
+  return TEXTS[messageLanguage(preferred)].checkinReceived;
+}
+
+/** Supervisors are told to check on the worker, not which symptoms were reported. */
+export function supervisorCheckMessage(pseudonym: string, crewName: string, urgent: boolean, schedule?: { workMin: number; restMin: number }): string {
+  if (urgent) {
+    return `URGENT CHECK: ${pseudonym} (${crewName}) may have a serious symptom. Go and check on them now.`;
+  }
+  const change = schedule ? ` They are now on work ${schedule.workMin} / rest ${schedule.restMin} min per hour.` : '';
+  return `${pseudonym} (${crewName}) reported feeling unwell.${change} Check on them.`;
 }
