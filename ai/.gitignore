@@ -1,4 +1,6 @@
 .venv/
 __pycache__/
 .pytest_cache/
+# Trained models are rebuilt with: python -m training.train_forecast
+models/*.joblib
 models/*.pkl

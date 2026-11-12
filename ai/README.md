@@ -10,8 +10,15 @@ pytest
 uvicorn app.main:app --reload --port 8000
 ```
 
+Train the forecast model (needs `data/raw`, takes under a minute):
+
+```bash
+python -m training.train_forecast
+```
+
 Status:
 
 - `/health` and `/assess` work. `/assess` estimates WBGT from weather, or uses `wbgtC` if the request supplies it.
-- `/forecast`, `/intake` and `/baseline` are not started.
-- Sources, assumptions and what is still unverified: `../docs/risk-model.md`.
+- `/forecast` corrects a 24-hour-ahead forecast. It answers 503 until the model has been trained.
+- `/intake` and `/baseline` are not started.
+- Sources, assumptions and what is still unverified: `../docs/risk-model.md`. Model results: `../docs/metrics.md`.

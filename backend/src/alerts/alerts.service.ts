@@ -1,7 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Level } from '../ai/ai.client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { actionFor, decideAlert, type AlertReason, type CrewAlertState } from './alert-rules.js';
+import {
+  actionFor,
+  decideAlert,
+  decideWorkerAlert,
+  type AlertReason,
+  type CrewAlertState,
+  type WorkerMessageState,
+} from './alert-rules.js';
 import {
   messageLanguage,
   supervisorCrewMessage,
@@ -47,32 +54,40 @@ export class AlertsService {
     return last ? { level: last.level, workMin: last.assessment?.workMin ?? null, at: last.validAt } : null;
   }
 
-  /** The text of each worker's most recent live heat message. */
-  private async lastWorkerBodies(workerIds: string[]): Promise<Map<string, string>> {
+  /** Each worker's most recent live heat message. */
+  private async lastWorkerMessages(workerIds: string[]): Promise<Map<string, WorkerMessageState>> {
     const rows = await this.prisma.alert.findMany({
       where: { workerId: { in: workerIds }, audience: 'WORKER', isReplay: false, reason: { not: 'RED_FLAG' } },
       orderBy: { createdAt: 'desc' },
       distinct: ['workerId'],
-      select: { workerId: true, body: true },
+      select: { workerId: true, body: true, validAt: true },
     });
-    return new Map(rows.flatMap((row) => (row.workerId ? [[row.workerId, row.body] as [string, string]] : [])));
+    const last = new Map<string, WorkerMessageState>();
+    for (const row of rows) {
+      if (row.workerId) last.set(row.workerId, { body: row.body, at: row.validAt });
+    }
+    return last;
   }
 
   /**
-   * Applies the alert rules to one crew assessment. Returns the state to pass
-   * in next time, and how many alerts were stored.
+   * Applies the alert rules to one crew assessment. The supervisor is alerted
+   * on the crew's level and schedule; each worker is judged on their own, so a
+   * worker on a stricter schedule is reminded at their own level's interval.
+   * Returns the state to pass in next time and how many alerts were stored.
    */
   async notifyCrew(
     n: CrewNotification,
     prev: CrewAlertState | null,
-  ): Promise<{ state: CrewAlertState | null; sent: number; reason: AlertReason | null }> {
+  ): Promise<{ state: CrewAlertState; sent: number; reason: AlertReason | null }> {
     const reason = decideAlert(prev, n.schedule.level, n.schedule.workMin, n.at);
-    if (!reason) return { state: prev, sent: 0, reason: null };
+    const last =
+      prev?.workers ??
+      (n.isReplay ? new Map<string, WorkerMessageState>() : await this.lastWorkerMessages(n.workers.map((w) => w.id)));
+    const workers = new Map(last);
 
     const now = new Date();
     const common = {
       assessmentId: n.assessmentId,
-      reason,
       channel: 'APP' as const,
       status: 'SENT' as const,
       validAt: n.at,
@@ -80,20 +95,18 @@ export class AlertsService {
       sentAt: now,
     };
 
-    // A worker on their own schedule may see no change when the crew's changes.
-    // Only a reminder repeats a message the worker already has.
-    const lastBodies =
-      prev?.workerBodies ?? (n.isReplay ? new Map<string, string>() : await this.lastWorkerBodies(n.workers.map((w) => w.id)));
-    const workerBodies = new Map(lastBodies);
-    const workerAlerts = [];
+    const alerts = [];
     for (const worker of n.workers) {
       const own = n.overrides.get(worker.id) ?? n.schedule;
       const body = workerMessage(worker.language, own.level, own.workMin, own.restMin);
-      workerBodies.set(worker.id, body);
-      if (reason !== 'REMINDER' && lastBodies.get(worker.id) === body) continue;
-      workerAlerts.push({
+      const workerReason = decideWorkerAlert(last.get(worker.id), own.level, body, reason, n.at);
+      if (!workerReason) continue;
+      workers.set(worker.id, { body, at: n.at });
+      alerts.push({
         ...common,
+        reason: workerReason,
         workerId: worker.id,
+        crewId: null,
         audience: 'WORKER' as const,
         level: own.level,
         action: actionFor(own.level, own.workMin),
@@ -102,29 +115,35 @@ export class AlertsService {
       });
     }
 
-    const supervisorAlert = {
-      ...common,
-      crewId: n.crew.id,
-      audience: 'SUPERVISOR' as const,
-      level: n.schedule.level,
-      action: actionFor(n.schedule.level, n.schedule.workMin),
-      body: supervisorCrewMessage(
-        n.crew.name,
-        n.schedule.level,
-        n.schedule.workMin,
-        n.schedule.restMin,
-        n.overrides.size,
+    if (reason) {
+      alerts.push({
+        ...common,
         reason,
-      ),
-      language: 'en',
-    };
+        workerId: null,
+        crewId: n.crew.id,
+        audience: 'SUPERVISOR' as const,
+        level: n.schedule.level,
+        action: actionFor(n.schedule.level, n.schedule.workMin),
+        body: supervisorCrewMessage(
+          n.crew.name,
+          n.schedule.level,
+          n.schedule.workMin,
+          n.schedule.restMin,
+          n.overrides.size,
+          reason,
+        ),
+        language: 'en',
+      });
+    }
 
-    await this.prisma.alert.createMany({ data: [...workerAlerts, supervisorAlert] });
-    return {
-      state: { level: n.schedule.level, workMin: n.schedule.workMin, at: n.at, workerBodies },
-      sent: workerAlerts.length + 1,
-      reason,
-    };
+    if (alerts.length > 0) await this.prisma.alert.createMany({ data: alerts });
+
+    // The crew's clock restarts only when the supervisor was alerted.
+    const state: CrewAlertState =
+      reason || !prev
+        ? { level: n.schedule.level, workMin: n.schedule.workMin, at: n.at, workers }
+        : { ...prev, workers };
+    return { state, sent: alerts.length, reason };
   }
 
   /**

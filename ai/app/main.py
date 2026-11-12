@@ -4,14 +4,15 @@ from fastapi import FastAPI, HTTPException
 
 from app.rules import limits
 from app.rules.wbgt import estimate_shade_wbgt_c, estimate_wbgt_c
-from app.schemas import AssessRequest, AssessResponse
+from app.forecast import service as forecast
+from app.schemas import AssessRequest, AssessResponse, ForecastRequest, ForecastResponse
 
 app = FastAPI(title="HeatGuard AI service", version="0.1.0")
 
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok", "models": {"forecast": None, "intake": None}}
+    return {"status": "ok", "models": {"forecast": forecast.model_version(), "intake": None}}
 
 
 @app.post("/assess", response_model=AssessResponse, response_model_by_alias=True)
@@ -47,3 +48,15 @@ def assess(req: AssessRequest) -> AssessResponse:
         work_min_rest_in_sun=work_min_sun,
         action=limits.ACTIONS[level],
     )
+
+
+@app.post("/forecast", response_model=ForecastResponse, response_model_by_alias=True)
+def correct_forecast(req: ForecastRequest) -> ForecastResponse:
+    """Corrects a 24-hour-ahead forecast. Not meant for same-day forecasts."""
+    try:
+        version, hours = forecast.correct(req.hours)
+    except forecast.ModelNotTrained as err:
+        raise HTTPException(status_code=503, detail=str(err)) from err
+    except ValueError as err:
+        raise HTTPException(status_code=422, detail=str(err)) from err
+    return ForecastResponse(model_version=version, hours=hours)

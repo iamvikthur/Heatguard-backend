@@ -27,10 +27,12 @@ Check performed: all 744 hours of July 2025 at the Mussafah site computed withou
 
 | Worker | Equation (M = hourly average metabolic rate in watts) | Status |
 | --- | --- | --- |
-| Acclimatized | limit = 56.7 - 11.5 log10(M) | Matches the ACGIH TLV form quoted in secondary sources. Gives 27.5 C at 348.9 W; the NIOSH 2016-106 worked example gives 27.8 C. |
-| Unacclimatized | limit = 59.9 - 14.1 log10(M) | Secondary sources quote the ACGIH action limit with 60.0. Gives 24.0 C at 348.9 W; the NIOSH worked example gives 25 C. **The 59.9 constant was not found in text we could read** (in the NIOSH PDF the equations sit inside Figures 8-1 and 8-2). |
+| Acclimatized | REL = 56.7 - 11.5 log10(M) | Confirmed: NIOSH 2016-106, Figure 8-2 |
+| Unacclimatized | RAL = 59.9 - 14.1 log10(M) | Confirmed: NIOSH 2016-106, Figure 8-1 |
 
-Both equations are stricter than the NIOSH worked example, so any error is on the safe side. A published comparison notes that the NIOSH equations and figures do not agree exactly. To do: read Figures 8-1 and 8-2 in the PDF and confirm both constants.
+Both equations were confirmed against the text of NIOSH 2016-106 as reproduced by eLCOSH, and the same forms are quoted in peer-reviewed assessments of the limits.
+
+A published assessment notes that the NIOSH equations and the curves in its figures do not agree exactly. HeatGuard uses the equations. They are stricter than the worked example in the document's text (27.5 C against 27.8 C acclimatized, and 24.0 C against 25 C unacclimatized, at 348.9 W), so the difference is on the safe side.
 
 The limits apply to healthy workers in ordinary single-layer work clothing, as one-hour time-weighted averages (NIOSH 2016-106, Section 1).
 
@@ -115,6 +117,8 @@ NIOSH describes heat stroke as a medical emergency with central nervous system s
 ## Sources
 
 - NIOSH (2016). Criteria for a Recommended Standard: Occupational Exposure to Heat and Hot Environments. Publication 2016-106. https://www.cdc.gov/niosh/docs/2016-106/
+- The same document as text (eLCOSH). https://elcosh.org/document/3998/d001392/criteria-for-a-recommended-standard:-occupational-exposure-to-heat-and-hot-environments..html
+- Hess et al. (2025). Critical Assessment of the Recommended Alert Limit Curves for Occupational Heat Exposure. https://pmc.ncbi.nlm.nih.gov/articles/PMC12512090/
 - OSHA Technical Manual, Section III, Chapter 4, Heat Stress. https://www.osha.gov/otm/section-3-health-hazards/chapter-4
 - OSHA, Heat Hazard Recognition (workload table). https://www.osha.gov/heat-exposure/hazards
 - Liljegren et al. (2008). https://doi.org/10.1080/15459620802310770

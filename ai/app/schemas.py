@@ -64,3 +64,32 @@ class AssessResponse(Wire):
     # Work minutes if breaks were taken in the open sun instead.
     work_min_rest_in_sun: int
     action: str
+
+
+class ForecastHour(Wire):
+    """One hour of a 24-hour-ahead forecast, with yesterday's outcome when known."""
+
+    weather: Weather
+    # WBGT observed 24 hours before this hour, and that hour's observed minus forecast WBGT.
+    prev_day_wbgt_c: float | None = None
+    prev_day_error_c: float | None = None
+
+
+class ForecastRequest(Wire):
+    hours: list[ForecastHour] = Field(min_length=1, max_length=72)
+
+
+class ForecastHourResult(Wire):
+    valid_at: datetime
+    wbgt_raw_c: float
+    # Most accurate estimate.
+    wbgt_best_c: float
+    # Cautious value for scheduling; never below the raw forecast.
+    wbgt_plan_c: float
+
+
+class ForecastResponse(Wire):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, protected_namespaces=())
+
+    model_version: str
+    hours: list[ForecastHourResult]

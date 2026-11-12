@@ -10,7 +10,7 @@ The forecast file holds each variable at two lead times:
   *_previous_day1  the value predicted 24 hours before that hour
 
 Previous Runs data starts in January 2024, so the usable summers are 2024
-(train) and 2025 (test).
+(train), 2025 (validation) and 2026 (final test).
 
 Standard library only. Run from the HeatGuard folder:
     python3 data/pull_open_meteo.py
@@ -33,7 +33,7 @@ SITES = {
     "mussafah": (24.35, 54.50),
     "kizad": (24.72, 54.72),
 }
-YEARS = (2024, 2025)
+YEARS = (2024, 2025, 2026)
 MONTHS = (5, 6, 7, 8, 9)  # May to September
 
 VARIABLES = [

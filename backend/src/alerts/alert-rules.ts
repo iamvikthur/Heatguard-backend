@@ -10,8 +10,13 @@ export interface CrewAlertState {
   /** Work minutes per hour in that alert, when known. */
   workMin: number | null;
   at: Date;
-  /** Each worker's last message text, so an unchanged message is not sent again. */
-  workerBodies?: Map<string, string>;
+  /** Each worker's last message and the time it applied to. */
+  workers?: Map<string, WorkerMessageState>;
+}
+
+export interface WorkerMessageState {
+  body: string;
+  at: Date;
 }
 
 /** Minutes before the same level is repeated. Levels not listed are never repeated. */
@@ -28,9 +33,31 @@ export function decideAlert(prev: CrewAlertState | null, level: Level, workMin: 
   if (LEVEL_RANK[level] > LEVEL_RANK[prev.level]) return 'LEVEL_UP';
   if (LEVEL_RANK[level] < LEVEL_RANK[prev.level]) return 'EASED';
   if (prev.workMin !== null && prev.workMin !== workMin) return 'SCHEDULE';
+  return reminderDue(level, prev.at, at) ? 'REMINDER' : null;
+}
+
+/** True when an unchanged ORANGE or RED message is old enough to repeat. */
+export function reminderDue(level: Level, lastAt: Date, at: Date): boolean {
   const interval = REMINDER_AFTER_MIN[level];
-  if (interval === undefined) return null;
-  return (at.getTime() - prev.at.getTime()) / 60000 >= interval ? 'REMINDER' : null;
+  return interval !== undefined && (at.getTime() - lastAt.getTime()) / 60000 >= interval;
+}
+
+/**
+ * Decides whether one worker gets a message, judged on the worker's own
+ * schedule: a first non-GREEN message, any change to their message, or a
+ * reminder at their own level's interval (or whenever the crew is reminded).
+ */
+export function decideWorkerAlert(
+  last: WorkerMessageState | undefined,
+  level: Level,
+  body: string,
+  crewReason: AlertReason | null,
+  at: Date,
+): AlertReason | null {
+  const change = crewReason && crewReason !== 'REMINDER' ? crewReason : null;
+  if (!last) return level === 'GREEN' ? null : (change ?? 'LEVEL_UP');
+  if (last.body !== body) return change ?? 'SCHEDULE';
+  return crewReason === 'REMINDER' || reminderDue(level, last.at, at) ? 'REMINDER' : null;
 }
 
 export function actionFor(level: Level, workMin: number): string {
