@@ -28,7 +28,7 @@ HeatGuard/
   docker-compose.yml        postgres, redis, ai
   backend/                  NestJS 12: API, jobs, alerts, governance
   ai/                       Python FastAPI: WBGT + rules, forecast model, symptom intake
-  web/                      Next.js: supervisor dashboard + worker mobile page
+  web/                      Next.js: supervisor dashboard (built) + worker page (not built)
   data/                     weather pulls, intake test set, simulation output (gitignored where large)
   docs/                     architecture, risk model, governance, limitations, metrics
 ```
