@@ -3,7 +3,7 @@
 
 For every shift hour (06:00-14:00 Gulf time), May to September 2024-2026, at
 both sites and for the three seeded crew workloads, the work/rest rules are run
-twice: on the 24-hour-ahead forecast (what the planning view shows the evening
+twice: on the 24-hour-ahead forecast (what the planning estimate gives the evening
 before) and on the recorded weather (what the day turned out to be).
 
 Reports:

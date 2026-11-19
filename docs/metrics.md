@@ -132,7 +132,7 @@ Shift hours (06:00 to 14:00 Gulf time):
 
 ### Status
 
-HeatGuard uses the raw forecast for the live outlook and for every work/rest decision on the day. The fixed model (`/forecast`) is not called by the backend. The adaptive version feeds one thing: the planning view (`GET /sites/:id/plan`), which shows the schedule from the raw forecast beside the schedule from the adaptive estimate. In serving it is fitted per site on each request; a per-site, daily-refit walk-forward check gave shift-hour errors of 1.09, 1.15 and 0.65 C for 2024, 2025 and 2026, in line with the table above.
+HeatGuard uses the raw forecast for the live outlook and for every work/rest decision on the day. The fixed model (`/forecast`) is not called by the backend. The adaptive version feeds one thing: the planning estimate (`GET /sites/:id/plan`), which returns the schedule from the raw forecast beside the schedule from the adaptive estimate. In serving it is fitted per site on each request; a per-site, daily-refit walk-forward check gave shift-hour errors of 1.09, 1.15 and 0.65 C for 2024, 2025 and 2026, in line with the table above.
 
 ### Limits
 
