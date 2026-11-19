@@ -156,6 +156,13 @@ export const api = {
     }),
   checkIn: (workerId: string, body: { text?: string; taps?: string[]; replay?: boolean }) =>
     request<CheckInResult>(`/workers/${workerId}/checkins`, { method: 'POST', body: JSON.stringify(body) }),
+  issueAccessLink: (workerId: string) =>
+    request<{ pseudonym: string; url: string; expiresAt: string; note: string }>(
+      `/workers/${workerId}/access-link`,
+      { method: 'POST' },
+    ),
+  revokeAccessLink: (workerId: string) =>
+    request<{ revoked: boolean }>(`/workers/${workerId}/access-link/revoke`, { method: 'POST' }),
 };
 
 /** Time of day at the site, not in the viewer's own time zone. */
@@ -175,4 +182,52 @@ export function siteDate(iso: string, timezone: string): string {
     year: 'numeric',
     timeZone: timezone,
   }).format(new Date(iso));
+}
+
+/**
+ * The three things a worker's page needs. A supervisor reaches them through
+ * /workers/:id; a worker reaches them through their own sign-in link, which
+ * carries who they are so no id appears in the request.
+ */
+export interface WorkerApi {
+  today(replay: boolean): Promise<WorkerToday>;
+  checkIn(body: { text?: string; taps?: string[]; replay?: boolean }): Promise<CheckInResult>;
+  setConsent(scope: 'CHECKIN' | 'WEARABLE', granted: boolean): Promise<Record<string, boolean>>;
+}
+
+export function staffWorkerApi(workerId: string): WorkerApi {
+  return {
+    today: (replay) => api.workerToday(workerId, replay),
+    checkIn: (body) => api.checkIn(workerId, body),
+    setConsent: (scope, granted) => api.setConsent(workerId, scope, granted),
+  };
+}
+
+export function selfWorkerApi(linkToken: string): WorkerApi {
+  const call = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
+    const res = await fetch(`${API}/worker/me${path}`, {
+      ...init,
+      headers: {
+        ...(init.body ? { 'content-type': 'application/json' } : {}),
+        authorization: `Bearer ${linkToken}`,
+      },
+    });
+    if (!res.ok) {
+      let message = `Request failed (${res.status})`;
+      try {
+        const body = (await res.json()) as { message?: string };
+        if (body.message) message = body.message;
+      } catch {
+        /* keep the status message */
+      }
+      throw new ApiError(message, res.status);
+    }
+    return (await res.json()) as T;
+  };
+  return {
+    today: (replay) => call<WorkerToday>(`/today${replay ? '?replay=true' : ''}`),
+    checkIn: (body) => call<CheckInResult>('/checkins', { method: 'POST', body: JSON.stringify(body) }),
+    setConsent: (scope, granted) =>
+      call<Record<string, boolean>>('/consents', { method: 'POST', body: JSON.stringify({ scope, granted }) }),
+  };
 }

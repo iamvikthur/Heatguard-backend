@@ -635,3 +635,32 @@ button {
 .crew-workers a:hover {
   border-color: var(--rule-strong);
 }
+
+.accesslink {
+  border-top: 1px solid var(--rule);
+  padding-top: 1.5rem;
+  margin-top: 0;
+}
+
+.linkbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0.75rem 0;
+}
+
+.linkbox code {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  word-break: break-all;
+  background: var(--surface);
+  padding: 0.5rem 0.6rem;
+}
+
+.linkactions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

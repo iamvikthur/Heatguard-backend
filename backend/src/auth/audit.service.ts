@@ -9,9 +9,20 @@ export class AuditService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /** A worker acting on their own data through their sign-in link. */
+  recordWorker(workerId: string, action: string, detail?: Record<string, string | number | boolean>) {
+    return this.record({ id: '', orgId: '', role: 'SUPERVISOR' }, action, 'Worker', workerId, {
+      ...detail,
+      via: 'worker-link',
+    });
+  }
+
   async record(user: AuthUser, action: string, entity: string, entityId: string, detail?: Record<string, string | number | boolean>) {
     try {
-      await this.prisma.auditLog.create({ data: { actorId: user.id, action, entity, entityId, detail } });
+      // A worker acting for themselves has no staff actor; detail.via records how.
+      await this.prisma.auditLog.create({
+        data: { actorId: user.id || null, action, entity, entityId, detail },
+      });
     } catch (err) {
       // An audit failure must be visible, but it should not hide the emergency path from a supervisor.
       this.logger.error(`Audit write failed for ${action} ${entity} ${entityId}: ${String(err)}`);

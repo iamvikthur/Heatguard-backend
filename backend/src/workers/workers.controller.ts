@@ -25,6 +25,24 @@ export class WorkersController {
     return this.workers.today(id, replay === 'true');
   }
 
+  /**
+   * Issues a sign-in link for this worker and retires any earlier one. The
+   * link is shown once; it is not stored anywhere it can be read back.
+   */
+  @Post('access-link')
+  async issueAccessLink(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    await this.access.assertWorker(user, id);
+    await this.audit.record(user, 'ISSUE_WORKER_LINK', 'Worker', id);
+    return this.workers.issueAccessLink(id, process.env.WEB_BASE_URL ?? 'http://localhost:3000');
+  }
+
+  @Post('access-link/revoke')
+  async revokeAccessLink(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    await this.access.assertWorker(user, id);
+    await this.audit.record(user, 'REVOKE_WORKER_LINK', 'Worker', id);
+    return this.workers.revokeAccessLinks(id);
+  }
+
   @Post('consents')
   async setConsent(
     @CurrentUser() user: AuthUser,

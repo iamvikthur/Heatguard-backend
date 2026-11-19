@@ -8,5 +8,6 @@ import { CheckinsService } from './checkins.service.js';
   imports: [AiModule, AlertsModule],
   controllers: [CheckinsController],
   providers: [CheckinsService],
+  exports: [CheckinsService],
 })
 export class CheckinsModule {}

@@ -63,3 +63,41 @@ describe('TokenService', () => {
     expect(() => withSecret('short')).toThrow('JWT_SECRET');
   });
 });
+
+describe('TokenService worker links', () => {
+  const tokens = (() => {
+    process.env.JWT_SECRET = 'a'.repeat(48);
+    return new TokenService();
+  })();
+  const worker = { id: 'w1', linkVersion: 3 };
+
+  it('round-trips a worker and its link version', () => {
+    expect(tokens.verifyWorker(tokens.signWorker(worker).token)).toEqual(worker);
+  });
+
+  it('is not accepted as a staff token', () => {
+    expect(tokens.verify(tokens.signWorker(worker).token)).toBeNull();
+  });
+
+  it('does not accept a staff token as a worker link', () => {
+    const staff = tokens.sign({ id: 'u1', orgId: 'o1', role: 'ADMIN' }).token;
+    expect(tokens.verifyWorker(staff)).toBeNull();
+  });
+
+  it('lasts 30 days and then stops working', () => {
+    const issued = new Date('2026-01-01T00:00:00Z');
+    const { token, expiresAt } = tokens.signWorker(worker, issued);
+    expect(expiresAt.toISOString()).toBe('2026-01-31T00:00:00.000Z');
+    expect(tokens.verifyWorker(token, new Date('2026-01-30T23:59:00Z'))).toEqual(worker);
+    expect(tokens.verifyWorker(token, new Date('2026-01-31T00:00:01Z'))).toBeNull();
+  });
+
+  it('rejects a tampered link version', () => {
+    const { token } = tokens.signWorker(worker);
+    const [header, , signature] = token.split('.');
+    const forged = Buffer.from(JSON.stringify({ sub: 'w1', kind: 'worker', v: 99, exp: 9999999999 })).toString(
+      'base64url',
+    );
+    expect(tokens.verifyWorker(`${header}.${forged}.${signature}`)).toBeNull();
+  });
+});

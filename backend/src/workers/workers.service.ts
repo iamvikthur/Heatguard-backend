@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { TokenService } from '../auth/token.service.js';
 import type { Level } from '../ai/ai.client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { symptomOptions, textDirection } from './symptom-labels.js';
@@ -18,7 +19,39 @@ export interface ScheduleView {
 
 @Injectable()
 export class WorkersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly tokens: TokenService,
+  ) {}
+
+  /**
+   * Issues a sign-in link for one worker. Every link already issued to them
+   * stops working, so re-issuing is also how a lost link is revoked.
+   */
+  async issueAccessLink(workerId: string, baseUrl: string) {
+    const worker = await this.prisma.worker.update({
+      where: { id: workerId },
+      data: { linkVersion: { increment: 1 } },
+      select: { id: true, linkVersion: true, pseudonym: true },
+    });
+    const { token, expiresAt } = this.tokens.signWorker({ id: worker.id, linkVersion: worker.linkVersion });
+    return {
+      pseudonym: worker.pseudonym,
+      url: `${baseUrl.replace(/\/$/, '')}/w/${token}`,
+      expiresAt,
+      note: 'Anyone holding this link is this worker. Issuing a new one stops the old one working.',
+    };
+  }
+
+  /** Stops every sign-in link already issued to this worker. */
+  async revokeAccessLinks(workerId: string) {
+    const worker = await this.prisma.worker.update({
+      where: { id: workerId },
+      data: { linkVersion: { increment: 1 } },
+      select: { linkVersion: true },
+    });
+    return { revoked: true, linkVersion: worker.linkVersion };
+  }
 
   /** Everything the worker's own page shows. */
   async today(workerId: string, replay: boolean) {
