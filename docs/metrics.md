@@ -1,6 +1,6 @@
 # HeatGuard metrics
 
-Last updated 19 Nov 2026. Outcome metrics come from `ai/models/alerts_eval.json` (`python -m training.evaluate_alerts`) and `ai/models/intake_eval.json` (`python -m training.evaluate_intake`). Forecast numbers come from `ai/models/forecast_v1.json`, written by `python -m training.train_forecast` on 12 Nov 2026.
+Last updated 19 Nov 2026. Outcome metrics come from `ai/models/alerts_eval.json` (`python -m training.evaluate_alerts`). Forecast numbers come from `ai/models/forecast_v1.json`, written by `python -m training.train_forecast` on 12 Nov 2026.
 
 ## The six outcome metrics (requirement 6)
 
@@ -9,8 +9,8 @@ Last updated 19 Nov 2026. Outcome metrics come from `ai/models/alerts_eval.json`
 | Alert lead time | Stop-work (RED) hours are flagged by the day-ahead plan a median of **16.5 to 18 hours** ahead. Of the summer days that reached RED for the concrete crew, **83 to 96%** were flagged the evening before. | Three recorded summers |
 | False-alarm rate | For the concrete crew, **15 to 43%** of the RED hours flagged the evening before were not RED on the day (37 to 73% for the rebar crew, which reaches RED less often). For ORANGE or worse it is **2 to 14%**. On the day, the live 15-minute runs replace the plan. | Three recorded summers |
 | Lost work time | With a cooled rest area, a concrete crew rests **3.7 hours** of an 8-hour summer shift; with breaks in shade, **6.1 hours**. The cooled rest area gives back **2 to 2.4 hours of work per shift**. | Three recorded summers |
-| Symptom reports | PENDING | 33 test check-ins, en/ar/hi |
-| Escalations | PENDING | 33 test check-ins, en/ar/hi |
+| Symptom reports | Checked on the live deployment: a tapped symptom and a typed Hindi message were both read correctly and put the worker on the supervisor's "needs check" list. Accuracy across languages is not yet measured; the test set and script are ready (below). | Live tests; test set ready |
+| Escalations | "I have a headache but have not vomited" (Hindi) led to an urgent in-person check, not a false emergency: the model read the negation, and the keyword net's disagreement was passed on rather than dropped. Red-flag recall is not yet measured. | Live test; test set ready |
 | Adherence | Not measurable without crews. **Pilot metric**, defined below. | — |
 
 ### How the first three were measured
@@ -56,7 +56,13 @@ This is the time the NIOSH limits require, not time lost to HeatGuard. Its use i
 
 ### Symptom reports and escalations
 
-PENDING
+These depend on what workers write, so they cannot be measured from weather data. What exists:
+
+- **Live checks on the deployed system.** A tapped "very thirsty" put the worker on the needs-check list. A typed Hindi message, "I have a headache but have not vomited", was read as a headache only. The keyword net matched "vomited", and because the model disagreed, the worker was sent for an urgent in-person check rather than an emergency (the disputed-flag rule in [ai-and-guardrails.md](ai-and-guardrails.md)).
+- **A test set and scoring script, not yet run.** `ai/tests/data/intake_cases.json` holds 33 messages (13 English, 10 Arabic, 10 Hindi), including red flags and negations. `python -m training.evaluate_intake` scores them against the configured model per language: exact matches, red-flag recall, false red flags, and urgent checks raised on messages with no red flag. It writes `ai/models/intake_eval.json`. The target is 100% red-flag recall. The Arabic and Hindi messages are machine-drafted and should be reviewed by native speakers before the scores are relied on.
+- **Unit tests** (`ai/tests/test_intake.py`) cover the decision table with a stubbed model: model and keyword agreement, model failure, disputed flags and negations.
+
+In a pilot, the counts to report are check-ins per 100 worker-shifts, the share raising a needs-check, emergencies, and for each emergency whether the supervisor acknowledged it and how fast.
 
 ### Adherence (pilot metric)
 

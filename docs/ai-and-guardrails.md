@@ -34,7 +34,7 @@ The third row is the important one. Keyword matching cannot read negation, so "I
 
 **Consent.** The backend refuses a check-in for a worker who has not consented to symptom check-ins, or has withdrawn. Workers can withdraw from their own page.
 
-**Evaluation.** `python -m training.evaluate_intake` runs 33 test messages (13 English, 10 Arabic, 10 Hindi), including negations and red flags, against the configured model and reports exact matches, red-flag recall, false red flags and urgent checks. Results: [metrics.md](metrics.md). The Arabic and Hindi phrases and keyword lists were machine-drafted and have not been reviewed by native speakers; that review is the first task before any pilot.
+**Evaluation.** `python -m training.evaluate_intake` runs 33 test messages (13 English, 10 Arabic, 10 Hindi), including negations and red flags, against the configured model and reports exact matches, red-flag recall, false red flags and urgent checks. It has not been run yet; the live checks so far are in [metrics.md](metrics.md). The Arabic and Hindi phrases and keyword lists were machine-drafted and have not been reviewed by native speakers; that review is the first task before any pilot.
 
 **Provider choice.** `INTAKE_PROVIDER=openai` or `anthropic`, with the model name in the environment. The service reports which provider and model it uses at `/health`, never the key.
 
