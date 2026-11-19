@@ -1,8 +1,12 @@
 // HeatGuard data model. See ../IMPLEMENTATION_PLAN.md section 4.
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  // Pinned so generation does not depend on finding tsconfig.json (the Docker
+  // build generates before copying it, and the default there is ".ts").
+  moduleFormat        = "esm"
+  importFileExtension = "js"
 }
 
 datasource db {
