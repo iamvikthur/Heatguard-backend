@@ -93,12 +93,13 @@ export class WorkersService {
             };
     }
 
-    // The latest thing the worker was actually told, replayed or live: their
-    // phone shows the most recent message, not one filtered by which day the
-    // supervisor happens to be reading.
+    // The latest message from the same day as the schedule shown above it:
+    // live messages beside the live schedule (always the case on a worker's
+    // own link), replayed ones beside a replayed day. A replay writes all its
+    // messages at once, so the hour they apply to decides which is latest.
     const message = await this.prisma.alert.findFirst({
-      where: { workerId, audience: 'WORKER' },
-      orderBy: { createdAt: 'desc' },
+      where: { workerId, audience: 'WORKER', isReplay: replay },
+      orderBy: [{ validAt: 'desc' }, { createdAt: 'desc' }],
       select: { body: true, language: true, level: true, createdAt: true },
     });
 

@@ -114,7 +114,7 @@ export function WorkerView({
             <p className="worker-level" style={{ background: colour }}>
               {schedule.level}
             </p>
-            <p className="worker-minutes">
+            <p className="worker-minutes" dir="ltr">
               {schedule.workMin} <span>min work</span> &nbsp; {schedule.restMin} <span>min rest</span>
             </p>
             <p className="worker-when" dir="ltr">
@@ -144,7 +144,7 @@ export function WorkerView({
       )}
 
       <section className="checkin">
-        <h2>How do you feel?</h2>
+        <h2 dir="ltr">How do you feel?</h2>
         {!consents.CHECKIN && <p className="worker-sub">Check-ins are off. Turn them on below to send one.</p>}
         <div className="taps">
           {symptomOptions.map((option) => (
@@ -172,7 +172,7 @@ export function WorkerView({
           {sending ? 'Sending' : 'Send'}
         </button>
 
-        <p className="or">or say it in your own words</p>
+        <p className="or" dir="ltr">or say it in your own words</p>
         <textarea
           rows={3}
           value={text}
