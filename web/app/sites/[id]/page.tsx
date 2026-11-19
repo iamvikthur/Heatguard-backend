@@ -31,12 +31,15 @@ export default function SitePage() {
   const siteId = String(useParams().id);
   const [site, setSite] = useState<Site | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [outlook, setOutlook] = useState<Outlook | null>(null);
+  const [loaded, setOutlook] = useState<Outlook | null>(null);
   const [checks, setChecks] = useState<Entry[]>([]);
   const [crewWorkers, setCrewWorkers] = useState<Record<string, { id: string; pseudonym: string }[]>>({});
   const [replay, setReplay] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  // Show nothing until the tab's own data arrives, so today's outlook never
+  // appears under the replayed-day label (or the reverse) while switching.
+  const outlook = loaded?.isReplay === replay ? loaded : null;
 
   const load = useCallback(
     async (showReplay: boolean) => {
