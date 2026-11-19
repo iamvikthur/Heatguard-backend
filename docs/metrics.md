@@ -1,6 +1,71 @@
 # HeatGuard metrics
 
-Last updated 12 Nov 2026. Numbers come from `ai/models/forecast_v1.json`, written by `python -m training.train_forecast` on 12 Nov 2026 (scikit-learn build on the project machine).
+Last updated 19 Nov 2026. Outcome metrics come from `ai/models/alerts_eval.json` (`python -m training.evaluate_alerts`) and `ai/models/intake_eval.json` (`python -m training.evaluate_intake`). Forecast numbers come from `ai/models/forecast_v1.json`, written by `python -m training.train_forecast` on 12 Nov 2026.
+
+## The six outcome metrics (requirement 6)
+
+| Metric | Result | Source |
+| --- | --- | --- |
+| Alert lead time | Stop-work (RED) hours are flagged by the day-ahead plan a median of **16.5 to 18 hours** ahead. Of the summer days that reached RED for the concrete crew, **83 to 96%** were flagged the evening before. | Three recorded summers |
+| False-alarm rate | For the concrete crew, **15 to 43%** of the RED hours flagged the evening before were not RED on the day (37 to 73% for the rebar crew, which reaches RED less often). For ORANGE or worse it is **2 to 14%**. On the day, the live 15-minute runs replace the plan. | Three recorded summers |
+| Lost work time | With a cooled rest area, a concrete crew rests **3.7 hours** of an 8-hour summer shift; with breaks in shade, **6.1 hours**. The cooled rest area gives back **2 to 2.4 hours of work per shift**. | Three recorded summers |
+| Symptom reports | PENDING | 33 test check-ins, en/ar/hi |
+| Escalations | PENDING | 33 test check-ins, en/ar/hi |
+| Adherence | Not measurable without crews. **Pilot metric**, defined below. | — |
+
+### How the first three were measured
+
+`python -m training.evaluate_alerts` (writes `ai/models/alerts_eval.json`) runs the work/rest rules on every shift hour, 06:00 to 14:00 Gulf time, May to September 2024, 2025 and 2026, at both sites: 306 shifts per workload per summer. Each hour is computed twice: from the 24-hour-ahead forecast, which is what the planning view shows the evening before, and from the recorded weather, which is what the day turned out to be. Crews are acclimatized with breaks in a 22 °C WBGT cooled rest area, as on the seeded sites. The plan is assumed to reach supervisors at 18:00 the evening before.
+
+**ORANGE is the normal state of a summer shift.** With the NIOSH limits, 77 to 93% of shift hours are ORANGE or worse, depending on the workload. So the useful warning is RED (15 minutes of work an hour or less), and the useful daily output is the schedule itself.
+
+RED warning, day ahead:
+
+| Summer | Crew | Shifts with a RED hour | Flagged the evening before | RED hours flagged | Median lead | Flagged hours that were not RED |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2024 | Concrete (520 W) | 138 of 306 | 95.7% | 90.9% | 16.5 h | 42.9% |
+| 2025 | Concrete (520 W) | 143 of 306 | 83.2% | 73.5% | 17 h | 43.3% |
+| 2026 | Concrete (520 W) | 159 of 306 | 91.8% | 85.2% | 17 h | 15.5% |
+| 2024 | Rebar (415 W) | 37 of 306 | 86.5% | 73.0% | 17 h | 73.3% |
+| 2025 | Rebar (415 W) | 40 of 306 | 57.5% | 42.3% | 18 h | 72.0% |
+| 2026 | Rebar (415 W) | 58 of 306 | 79.3% | 66.7% | 17 h | 36.8% |
+
+The formwork crew (300 W) almost never reaches RED with a cooled rest area (0 to 7 shifts a summer).
+
+Day-ahead schedule against the day, all crews:
+
+| Summer | Exactly right | Too lenient | Too strict |
+| --- | --- | --- | --- |
+| 2024 | 75 to 78% | 2.3 to 2.7% | 19 to 22% |
+| 2025 | 72 to 75% | 3.4 to 4.9% | 21 to 23% |
+| 2026 | 86 to 88% | 5.6 to 6.7% | 7 to 8% |
+
+"Too lenient" means the plan allowed more work than the day's weather did; by a median of 15 minutes, one schedule step. In 2024 and 2025 the raw forecast ran hot, so the plan erred strict; in 2026 it was unbiased, so it was right more often and lenient a little more often (see the forecast sections below). On the day, the live 15-minute runs replace the plan, so a lenient plan is corrected before the hour starts, provided the live forecast is right.
+
+Lost work time, rest per 8-hour shift on the recorded weather (mean of three summers, rounded):
+
+| Crew | Cooled rest area | Shade | Open sun |
+| --- | --- | --- | --- |
+| Formwork (300 W) | 2.5 h | 4.5 h | 5.2 h |
+| Rebar (415 W) | 3.2 h | 5.5 h | 5.9 h |
+| Concrete (520 W) | 3.7 h | 6.1 h | 6.4 h |
+
+This is the time the NIOSH limits require, not time lost to HeatGuard. Its use is the comparison: compared with shade, a cooled rest area gives back 2 to 2.4 hours of work per shift. Alert burden is low: a crew's schedule changes 1.5 to 1.8 times per shift.
+
+**What these numbers cannot show.** The live 6-hour outlook is not evaluated, because the archive holds no same-day forecasts. "Recorded weather" is the provider's analysis, not an on-site sensor. Individual uplift (new arrivals, symptoms) is not included. The UAE midday work ban (12:30 to 15:00, 15 June to 15 September) is not modelled; it overlaps the last hour and a half of this shift.
+
+### Symptom reports and escalations
+
+PENDING
+
+### Adherence (pilot metric)
+
+Adherence needs real crews, so it is defined here for a pilot rather than reported:
+
+- **Alert acknowledgement:** share of supervisor alerts acknowledged ("I have checked"), and median time to acknowledge. Every alert and acknowledgement is already stored with timestamps.
+- **Check-in uptake:** share of workers on ORANGE or RED shifts who send at least one check-in.
+- **Schedule adherence:** share of scheduled rest breaks actually taken. HeatGuard does not record breaks today; a pilot would add a "break started" tap or a rest-area door counter.
+- **Outcome:** heat-related first-aid cases per 1,000 worker-shifts, compared with the same sites' records from the previous summer.
 
 ## Forecast-correction model
 

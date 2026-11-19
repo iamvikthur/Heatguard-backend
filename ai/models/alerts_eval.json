@@ -1,0 +1,302 @@
+{
+  "generated": "2026-11-19T08:17:57+00:00",
+  "assumptions": {
+    "shift": "06:00-14:00 Gulf time, 8 hours",
+    "sites": [
+      "mussafah",
+      "kizad"
+    ],
+    "crews": "acclimatized; individual uplift (new arrivals, symptoms) not included",
+    "rest_area_for_warnings": "cooled, 22.0 C WBGT (the seeded sites)",
+    "danger": "an hour whose recorded weather gives ORANGE or worse (warning_orange_or_red) or RED (warning_red)",
+    "plan_published": "18:00 Gulf time the evening before",
+    "forecast": "Open-Meteo 24-hour-ahead (previous_day1), raw: the adaptive correction is not applied"
+  },
+  "years": {
+    "2024": {
+      "moderate (formwork, 300 W)": {
+        "shifts": 306,
+        "warning_orange_or_red": {
+          "danger_hours_pct_of_shift": 77.7,
+          "danger_days": 303,
+          "danger_hours_warned_day_ahead_pct": 99.0,
+          "danger_days_warned_day_ahead_pct": 100.0,
+          "lead_time_hours_median": 14.0,
+          "false_alarm_pct_of_flagged_hours": 10.1
+        },
+        "warning_red": {
+          "danger_hours_pct_of_shift": 0.0,
+          "danger_days": 0,
+          "danger_hours_warned_day_ahead_pct": null,
+          "danger_days_warned_day_ahead_pct": null,
+          "lead_time_hours_median": null,
+          "false_alarm_pct_of_flagged_hours": 100.0
+        },
+        "day_ahead_schedule": {
+          "exact_pct": 78.2,
+          "too_lenient_pct": 2.4,
+          "too_lenient_by_minutes_median": 15.0,
+          "too_strict_pct": 19.4
+        },
+        "lost_work_min_per_shift_mean": {
+          "cooled": 148.3,
+          "shade": 273.4,
+          "sun": 307.1
+        },
+        "schedule_changes_per_shift_mean": 1.6
+      },
+      "heavy (rebar, 415 W)": {
+        "shifts": 306,
+        "warning_orange_or_red": {
+          "danger_hours_pct_of_shift": 87.3,
+          "danger_days": 304,
+          "danger_hours_warned_day_ahead_pct": 99.6,
+          "danger_days_warned_day_ahead_pct": 100.0,
+          "lead_time_hours_median": 12.0,
+          "false_alarm_pct_of_flagged_hours": 5.8
+        },
+        "warning_red": {
+          "danger_hours_pct_of_shift": 3.0,
+          "danger_days": 37,
+          "danger_hours_warned_day_ahead_pct": 73.0,
+          "danger_days_warned_day_ahead_pct": 86.5,
+          "lead_time_hours_median": 17.0,
+          "false_alarm_pct_of_flagged_hours": 73.3
+        },
+        "day_ahead_schedule": {
+          "exact_pct": 76.8,
+          "too_lenient_pct": 2.3,
+          "too_lenient_by_minutes_median": 15.0,
+          "too_strict_pct": 21.0
+        },
+        "lost_work_min_per_shift_mean": {
+          "cooled": 189.2,
+          "shade": 330.7,
+          "sun": 356.7
+        },
+        "schedule_changes_per_shift_mean": 1.53
+      },
+      "very heavy (concrete, 520 W)": {
+        "shifts": 306,
+        "warning_orange_or_red": {
+          "danger_hours_pct_of_shift": 91.8,
+          "danger_days": 304,
+          "danger_hours_warned_day_ahead_pct": 99.6,
+          "danger_days_warned_day_ahead_pct": 100.0,
+          "lead_time_hours_median": 12.0,
+          "false_alarm_pct_of_flagged_hours": 3.6
+        },
+        "warning_red": {
+          "danger_hours_pct_of_shift": 16.1,
+          "danger_days": 138,
+          "danger_hours_warned_day_ahead_pct": 90.9,
+          "danger_days_warned_day_ahead_pct": 95.7,
+          "lead_time_hours_median": 16.5,
+          "false_alarm_pct_of_flagged_hours": 42.9
+        },
+        "day_ahead_schedule": {
+          "exact_pct": 75.0,
+          "too_lenient_pct": 2.7,
+          "too_lenient_by_minutes_median": 15.0,
+          "too_strict_pct": 22.3
+        },
+        "lost_work_min_per_shift_mean": {
+          "cooled": 223.8,
+          "shade": 366.8,
+          "sun": 386.3
+        },
+        "schedule_changes_per_shift_mean": 1.57
+      }
+    },
+    "2025": {
+      "moderate (formwork, 300 W)": {
+        "shifts": 306,
+        "warning_orange_or_red": {
+          "danger_hours_pct_of_shift": 76.6,
+          "danger_days": 304,
+          "danger_hours_warned_day_ahead_pct": 99.1,
+          "danger_days_warned_day_ahead_pct": 100.0,
+          "lead_time_hours_median": 14.0,
+          "false_alarm_pct_of_flagged_hours": 13.6
+        },
+        "warning_red": {
+          "danger_hours_pct_of_shift": 0.2,
+          "danger_days": 3,
+          "danger_hours_warned_day_ahead_pct": 0.0,
+          "danger_days_warned_day_ahead_pct": 0.0,
+          "lead_time_hours_median": null,
+          "false_alarm_pct_of_flagged_hours": 100.0
+        },
+        "day_ahead_schedule": {
+          "exact_pct": 75.3,
+          "too_lenient_pct": 4.0,
+          "too_lenient_by_minutes_median": 15,
+          "too_strict_pct": 20.8
+        },
+        "lost_work_min_per_shift_mean": {
+          "cooled": 149.3,
+          "shade": 268.9,
+          "sun": 309.3
+        },
+        "schedule_changes_per_shift_mean": 1.79
+      },
+      "heavy (rebar, 415 W)": {
+        "shifts": 306,
+        "warning_orange_or_red": {
+          "danger_hours_pct_of_shift": 87.2,
+          "danger_days": 306,
+          "danger_hours_warned_day_ahead_pct": 99.4,
+          "danger_days_warned_day_ahead_pct": 100.0,
+          "lead_time_hours_median": 13.0,
+          "false_alarm_pct_of_flagged_hours": 8.4
+        },
+        "warning_red": {
+          "danger_hours_pct_of_shift": 3.2,
+          "danger_days": 40,
+          "danger_hours_warned_day_ahead_pct": 42.3,
+          "danger_days_warned_day_ahead_pct": 57.5,
+          "lead_time_hours_median": 18.0,
+          "false_alarm_pct_of_flagged_hours": 72.0
+        },
+        "day_ahead_schedule": {
+          "exact_pct": 75.0,
+          "too_lenient_pct": 3.4,
+          "too_lenient_by_minutes_median": 15.0,
+          "too_strict_pct": 21.5
+        },
+        "lost_work_min_per_shift_mean": {
+          "cooled": 189.3,
+          "shade": 329.3,
+          "sun": 356.3
+        },
+        "schedule_changes_per_shift_mean": 1.69
+      },
+      "very heavy (concrete, 520 W)": {
+        "shifts": 306,
+        "warning_orange_or_red": {
+          "danger_hours_pct_of_shift": 92.4,
+          "danger_days": 306,
+          "danger_hours_warned_day_ahead_pct": 99.6,
+          "danger_days_warned_day_ahead_pct": 100.0,
+          "lead_time_hours_median": 12.0,
+          "false_alarm_pct_of_flagged_hours": 4.7
+        },
+        "warning_red": {
+          "danger_hours_pct_of_shift": 15.1,
+          "danger_days": 143,
+          "danger_hours_warned_day_ahead_pct": 73.5,
+          "danger_days_warned_day_ahead_pct": 83.2,
+          "lead_time_hours_median": 17.0,
+          "false_alarm_pct_of_flagged_hours": 43.3
+        },
+        "day_ahead_schedule": {
+          "exact_pct": 72.2,
+          "too_lenient_pct": 4.9,
+          "too_lenient_by_minutes_median": 15,
+          "too_strict_pct": 23.0
+        },
+        "lost_work_min_per_shift_mean": {
+          "cooled": 222.1,
+          "shade": 365.8,
+          "sun": 386.2
+        },
+        "schedule_changes_per_shift_mean": 1.76
+      }
+    },
+    "2026": {
+      "moderate (formwork, 300 W)": {
+        "shifts": 306,
+        "warning_orange_or_red": {
+          "danger_hours_pct_of_shift": 77.0,
+          "danger_days": 304,
+          "danger_hours_warned_day_ahead_pct": 97.3,
+          "danger_days_warned_day_ahead_pct": 100.0,
+          "lead_time_hours_median": 14.0,
+          "false_alarm_pct_of_flagged_hours": 3.5
+        },
+        "warning_red": {
+          "danger_hours_pct_of_shift": 0.4,
+          "danger_days": 7,
+          "danger_hours_warned_day_ahead_pct": 44.4,
+          "danger_days_warned_day_ahead_pct": 57.1,
+          "lead_time_hours_median": 17.5,
+          "false_alarm_pct_of_flagged_hours": 55.6
+        },
+        "day_ahead_schedule": {
+          "exact_pct": 87.6,
+          "too_lenient_pct": 5.6,
+          "too_lenient_by_minutes_median": 15.0,
+          "too_strict_pct": 6.8
+        },
+        "lost_work_min_per_shift_mean": {
+          "cooled": 151.9,
+          "shade": 272.1,
+          "sun": 310.9
+        },
+        "schedule_changes_per_shift_mean": 1.8
+      },
+      "heavy (rebar, 415 W)": {
+        "shifts": 306,
+        "warning_orange_or_red": {
+          "danger_hours_pct_of_shift": 86.6,
+          "danger_days": 306,
+          "danger_hours_warned_day_ahead_pct": 98.3,
+          "danger_days_warned_day_ahead_pct": 100.0,
+          "lead_time_hours_median": 13.0,
+          "false_alarm_pct_of_flagged_hours": 2.5
+        },
+        "warning_red": {
+          "danger_hours_pct_of_shift": 5.3,
+          "danger_days": 58,
+          "danger_hours_warned_day_ahead_pct": 66.7,
+          "danger_days_warned_day_ahead_pct": 79.3,
+          "lead_time_hours_median": 17.0,
+          "false_alarm_pct_of_flagged_hours": 36.8
+        },
+        "day_ahead_schedule": {
+          "exact_pct": 86.6,
+          "too_lenient_pct": 5.8,
+          "too_lenient_by_minutes_median": 15.0,
+          "too_strict_pct": 7.6
+        },
+        "lost_work_min_per_shift_mean": {
+          "cooled": 190.6,
+          "shade": 327.3,
+          "sun": 357.2
+        },
+        "schedule_changes_per_shift_mean": 1.78
+      },
+      "very heavy (concrete, 520 W)": {
+        "shifts": 306,
+        "warning_orange_or_red": {
+          "danger_hours_pct_of_shift": 92.7,
+          "danger_days": 306,
+          "danger_hours_warned_day_ahead_pct": 98.2,
+          "danger_days_warned_day_ahead_pct": 100.0,
+          "lead_time_hours_median": 12.0,
+          "false_alarm_pct_of_flagged_hours": 1.7
+        },
+        "warning_red": {
+          "danger_hours_pct_of_shift": 19.9,
+          "danger_days": 159,
+          "danger_hours_warned_day_ahead_pct": 85.2,
+          "danger_days_warned_day_ahead_pct": 91.8,
+          "lead_time_hours_median": 17.0,
+          "false_alarm_pct_of_flagged_hours": 15.5
+        },
+        "day_ahead_schedule": {
+          "exact_pct": 85.9,
+          "too_lenient_pct": 6.7,
+          "too_lenient_by_minutes_median": 15,
+          "too_strict_pct": 7.4
+        },
+        "lost_work_min_per_shift_mean": {
+          "cooled": 228.8,
+          "shade": 365,
+          "sun": 386.1
+        },
+        "schedule_changes_per_shift_mean": 1.81
+      }
+    }
+  }
+}
