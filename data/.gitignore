@@ -1,1 +1,2 @@
-raw/
+# data/raw is committed so deploys can replay and train.
+# Source: Open-Meteo (CC BY 4.0). Refresh with: python3 data/pull_open_meteo.py
