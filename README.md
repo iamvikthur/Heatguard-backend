@@ -20,7 +20,7 @@ Every 15 minutes, HeatGuard takes the weather forecast for each site, works out 
 - **Supervisors** see each crew's level (GREEN, YELLOW, ORANGE, RED), its schedule, and a "needs check" list of workers to see in person.
 - **Workers** get their own schedule and messages in their language (English, Arabic, Hindi) from a personal link, with no app or password. They can report how they feel by tapping symptoms or in their own words. Someone new to the heat, or who reports symptoms, gets a stricter schedule than the rest of the crew.
 - **Red flags** (confusion, fainting, vomiting, stopped sweating) start the emergency path at once: the worker is told to stop work and get to a cool place, and the supervisor is told to go to them, cool them and call 998.
-- **The evening before**, the planning view shows tomorrow's schedule so a supervisor can move heavy tasks earlier or arrange cover.
+- **The evening before**, a planning estimate gives tomorrow's schedule so heavy tasks can be moved earlier or cover arranged. It is an API endpoint (`GET /sites/:id/plan`) with no screen yet.
 
 ## Results
 

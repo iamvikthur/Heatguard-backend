@@ -15,7 +15,7 @@ Last updated 19 Nov 2026. Outcome metrics come from `ai/models/alerts_eval.json`
 
 ### How the first three were measured
 
-`python -m training.evaluate_alerts` (writes `ai/models/alerts_eval.json`) runs the work/rest rules on every shift hour, 06:00 to 14:00 Gulf time, May to September 2024, 2025 and 2026, at both sites: 306 shifts per workload per summer. Each hour is computed twice: from the 24-hour-ahead forecast, which is what the planning view shows the evening before, and from the recorded weather, which is what the day turned out to be. Crews are acclimatized with breaks in a 22 °C WBGT cooled rest area, as on the seeded sites. The plan is assumed to reach supervisors at 18:00 the evening before.
+`python -m training.evaluate_alerts` (writes `ai/models/alerts_eval.json`) runs the work/rest rules on every shift hour, 06:00 to 14:00 Gulf time, May to September 2024, 2025 and 2026, at both sites: 306 shifts per workload per summer. Each hour is computed twice: from the 24-hour-ahead forecast, which is what the planning estimate gives the evening before, and from the recorded weather, which is what the day turned out to be. Crews are acclimatized with breaks in a 22 °C WBGT cooled rest area, as on the seeded sites. The plan is assumed to reach supervisors at 18:00 the evening before.
 
 **ORANGE is the normal state of a summer shift.** With the NIOSH limits, 77 to 93% of shift hours are ORANGE or worse, depending on the workload. So the useful warning is RED (15 minutes of work an hour or less), and the useful daily output is the schedule itself.
 

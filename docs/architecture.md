@@ -19,7 +19,7 @@ flowchart LR
 | --- | --- | --- |
 | `ai` (Python, FastAPI) | Computes WBGT, exposure limits, work/rest minutes and levels (`/assess`); turns check-in text or audio into symptoms (`/intake`); builds the planning estimate (`/plan`) | Store anything. It is stateless and is not reachable from the internet. |
 | `backend` (TypeScript, NestJS, Prisma) | Sign-in and roles, the 15-minute risk timer, weather fetching, alert rules and message templates, check-ins, consent, audit log, replays | Make any heat or symptom judgement itself: it asks `ai` |
-| `web` (Next.js) | Supervisor dashboard, worker page, planning view | Hold data: the worker page keeps nothing in the browser |
+| `web` (Next.js) | Supervisor dashboard, worker page | Hold data: the worker page keeps nothing in the browser |
 
 ## The four flows
 

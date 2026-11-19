@@ -38,6 +38,7 @@ What HeatGuard assumes, what it does not do, and what a pilot would need to chan
 | Offline worker page | Not built. Sites with poor coverage need SMS. |
 | Retention job | Policy written ([governance.md](governance.md)), not enforced. |
 | Audit log viewer | Logged, no screen. |
+| Planning screen | The planning estimate is an API endpoint only. |
 | Job queue for the risk timer | The timer runs inside the backend, so only one backend instance can run. |
 
 ## Regulatory context not modelled

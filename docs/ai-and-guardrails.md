@@ -8,7 +8,7 @@ AI is used where rules cannot do the job:
 | --- | --- | --- |
 | Job | Understand a worker's own words in English, Arabic or Hindi | Correct tomorrow's forecast for the forecast's recent error at the site |
 | Model | Language model (OpenAI or Claude, set by `INTAKE_PROVIDER`); speech-to-text through OpenAI | Gradient-boosted quantile regression (scikit-learn), refitted per request on the last 45 days |
-| Decides | Which of eleven fixed symptoms the message reports | Nothing on the day. It feeds the planning view only. |
+| Decides | Which of eleven fixed symptoms the message reports | Nothing on the day. It feeds the planning estimate only. |
 | Never decides | A level, a schedule, or whether to call for help on its own | Any live work/rest decision |
 
 ## 1. Symptom intake
@@ -52,13 +52,13 @@ Code: `ai/app/forecast/`. Evaluation and full numbers: [metrics.md](metrics.md).
 
 In a walk-forward test it was 9% and 15% more accurate in 2024 and 2025, when the forecast was biased, and identical to the raw forecast in 2026, when it was not: it stayed off all summer and did no harm. On the live deployment today it is off (recent bias −0.06 °C).
 
-**Where it is used.** Only the planning view, which shows tomorrow's schedule from the raw forecast and from the corrected forecast side by side, with a note saying whether the correction is on. The corrected value can be lower than the raw one when the forecast has been running hot, which is why both are always shown. On the day, every work/rest decision comes from the live forecast, which the model is not trained for and never touches.
+**Where it is used.** Only the planning estimate (`GET /sites/:id/plan`, no screen yet), which returns tomorrow's schedule from the raw forecast and from the corrected forecast side by side, with a note saying whether the correction is on. The corrected value can be lower than the raw one when the forecast has been running hot, which is why both are always shown. On the day, every work/rest decision comes from the live forecast, which the model is not trained for and never touches.
 
 **How far to trust it.** The window, quantile and threshold were chosen after seeing all three summers, so no untouched test remains. Two nearby sites, one forecast provider. It is evidence the approach is sound, not proof of a gain.
 
 ## What the AI cannot break
 
-- **The model is down:** check-ins fall back to the keyword net and then to tapping; the planning view falls back to the raw forecast. Live schedules never depend on either model.
+- **The model is down:** check-ins fall back to the keyword net and then to tapping; the planning estimate falls back to the raw forecast. Live schedules never depend on either model.
 - **The weather API is down:** the last stored forecast is used and every level is raised one step, marked as fallback on the dashboard.
 - **The model answers nonsense:** it fails schema validation and is treated as down.
 - **The model misses a red flag the worker wrote:** the keyword net catches the phrase and the worker is checked urgently in person (row 3), or the worker can tap the symptom directly.
